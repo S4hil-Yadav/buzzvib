@@ -1,0 +1,16 @@
+import { ApiError, ErrorCode } from "@/lib/error.js";
+import { logApiError } from "@/loggers/api.logger.js";
+import type { Request, Response, NextFunction } from "express";
+
+export async function protectRoute(req: Request, _res: Response, next: NextFunction) {
+  try {
+    if (!req.user) {
+      return next(new ApiError(401, { message: "Unauthorized", code: ErrorCode.UNAUTHORIZED }));
+    }
+
+    next();
+  } catch (err) {
+    logApiError(`Error in protectRoute middleware: ${err}`);
+    next(new ApiError());
+  }
+}

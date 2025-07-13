@@ -1,0 +1,97 @@
+import { logApiError } from "@/loggers/api.logger.js";
+import type { NextFunction } from "express";
+
+export enum ErrorCode {
+  // ──────── General ────────
+  INVALID_INPUT = "INVALID_INPUT",
+  INVALID_OBJECT_ID = "INVALID_OBJECT_ID",
+  INVALID_IDS = "INVALID_IDS",
+  INVALID_REQUEST_BODY = "INVALID_REQUEST_BODY",
+  UNAUTHORIZED = "UNAUTHORIZED",
+  FORBIDDEN = "FORBIDDEN",
+  NOT_FOUND = "NOT_FOUND",
+  MISSING_REQUIRED_FIELDS = "MISSING_REQUIRED_FIELDS",
+  INTERNAL_ERROR = "INTERNAL_ERROR",
+  INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR",
+  TOO_MANY_REQUESTS = "TOO_MANY_REQUESTS",
+  BATCH_LIMIT_EXCEEDED = "BATCH_LIMIT_EXCEEDED",
+
+  // ──────── User/Auth ────────
+  USER_NOT_FOUND = "USER_NOT_FOUND",
+  INVALID_CREDENTIALS = "INVALID_CREDENTIALS",
+  EMAIL_ALREADY_EXISTS = "EMAIL_ALREADY_EXISTS",
+  USERNAME_ALREADY_EXISTS = "USERNAME_ALREADY_EXISTS",
+  EMAIL_SEND_FAILED = "EMAIL_SEND_FAILED",
+  EMAIL_VERIFICATION_FAILED = "EMAIL_VERIFICATION_FAILED",
+  OTP_INVALID_OR_EXPIRED = "OTP_INVALID_OR_EXPIRED",
+  OTP_SEND_FAILED = "OTP_SEND_FAILED",
+  PASSWORD_CHANGE_FAILED = "PASSWORD_CHANGE_FAILED",
+  INCORRECT_OLD_PASSWORD = "INCORRECT_OLD_PASSWORD",
+  SESSION_NOT_FOUND = "SESSION_NOT_FOUND",
+
+  // ──────── Token ────────
+  EXPIRED_ACCESS_TOKEN = "EXPIRED_ACCESS_TOKEN",
+  INVALID_ACCESS_TOKEN = "INVALID_ACCESS_TOKEN",
+  INVALID_REFRESH_TOKEN = "INVALID_REFRESH_TOKEN",
+  MISSING_REFRESH_TOKEN = "MISSING_REFRESH_TOKEN",
+  REFRESH_TOKEN_EXPIRED = "REFRESH_TOKEN_EXPIRED",
+
+  // ──────── Post ────────
+  POST_NOT_FOUND = "POST_NOT_FOUND",
+  INVALID_FILE_PAYLOAD = "INVALID_FILE_PAYLOAD",
+  FAILED_TO_DELETE_POST = "FAILED_TO_DELETE_POST",
+
+  // ──────── Comment ────────
+  COMMENT_NOT_FOUND = "COMMENT_NOT_FOUND",
+
+  // ──────── Notification ────────
+  NOTIFICATION_NOT_FOUND = "NOTIFICATION_NOT_FOUND",
+
+  // ──────── Follow / Relationship ────────
+  REQUEST_ALREADY_PENDING = "REQUEST_ALREADY_PENDING",
+  ALREADY_FOLLOWING = "ALREADY_FOLLOWING",
+  FOLLOW_INSTANCE_NOT_FOUND = "FOLLOW_INSTANCE_NOT_FOUND",
+  ALREADY_BLOCKED = "ALREADY_BLOCKED",
+  NOT_BLOCKED = "NOT_BLOCKED",
+
+  // ──────── Reaction / Save ────────
+  INVALID_REACTION_TYPE = "INVALID_REACTION_TYPE",
+  FAILED_TO_REACT = "FAILED_TO_REACT",
+  FAILED_TO_SAVE_POST = "FAILED_TO_SAVE_POST",
+  LIKES_HIDDEN = "LIKES_HIDDEN",
+
+  // ──────── Chat ────────
+  CHATROOM_NOT_FOUND = "CHATROOM_NOT_FOUND",
+
+  // ──────── Misc ────────
+  FAILED_TO_UPLOAD_IMAGE = "FAILED_TO_UPLOAD_IMAGE",
+  INVALID_RESET_TOKEN = "INVALID_RESET_TOKEN",
+  RESET_PASSWORD_FAILED = "RESET_PASSWORD_FAILED",
+  BLOCKED_USER = "BLOCKED_USER",
+  PRIVATE_USER = "PRIVATE_USER",
+}
+
+export class ApiError extends Error {
+  status: number;
+  code: string;
+
+  constructor(status: number = 500, options?: { message: string; code: ErrorCode }) {
+    const { message = "Internal Server Error", code = ErrorCode.INTERNAL_SERVER_ERROR } = options ?? {};
+
+    super(message);
+    this.status = status;
+    this.name = "ApiError";
+    this.code = code;
+
+    Object.setPrototypeOf(this, ApiError.prototype);
+  }
+}
+
+export function handleControllerError(controllerName: string, err: unknown, next: NextFunction) {
+  if (err instanceof ApiError) {
+    next(err);
+  } else {
+    logApiError(`Error in ${controllerName} controller: ${err}`);
+    next(new ApiError());
+  }
+}

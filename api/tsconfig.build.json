@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "plugins": [{ "transform": "ts-transformer-paths" }]
+  },
+  "exclude": ["src/scripts"]
+}

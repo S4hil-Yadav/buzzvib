@@ -1,0 +1,24 @@
+{
+  "name": "buzzvib",
+  "version": "1.0.0",
+  "main": "api/server.js",
+  "scripts": {
+    "client": "npm run dev --prefix client",
+    "api": "npm run dev --prefix api",
+    "db:seed": "npm run db:seed --prefix api",
+    "workers": "npm run workers --prefix api",
+    "start": "npm run start --prefix api",
+    "build": "npm i --prefix client && npm i --prefix api && npm run build --prefix client"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "dotenv": "^16.5.0",
+    "emoji-picker-react": "^4.12.2",
+    "mongoose": "^8.15.1",
+    "path": "^0.12.7",
+    "url": "^0.11.4"
+  }
+}
