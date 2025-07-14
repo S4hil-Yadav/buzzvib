@@ -37,7 +37,7 @@ const worker = new Worker<CreatePostJobPayload>(
 
         media.push({ type: resourceType, url: cloudinaryRes.secure_url });
       } catch (err) {
-        logError(`Failed to upload ${file.originalname}: ${err}`);
+        logError(`Failed to upload ${file.originalname}:`, err);
       }
     }
 

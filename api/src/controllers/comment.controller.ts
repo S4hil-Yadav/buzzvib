@@ -55,27 +55,29 @@ export async function submitComment(req: Request<{ postId: string }>, res: Respo
       throw new ApiError(403, { message: "Can't react due to a block relationship", code: ErrorCode.BLOCKED_USER });
     }
 
-    const newComment = new CommentModel({ post: postId, commentor: req.user!._id, text: commentText });
+    const newCommentId = await withTransaction(async session => {
+      const newComment = new CommentModel({ post: postId, commentor: req.user!._id, text: commentText });
 
-    const notification =
-      post.author && String(post.author._id) !== String(req.user!._id)
-        ? new NotificationModel({
-            sender: req.user!._id,
-            receiver: post.author._id,
-            type: "newComment",
-            target: { post: postId, comment: newComment._id },
-          })
-        : null;
+      const notification =
+        post.author && String(post.author._id) !== String(req.user!._id)
+          ? new NotificationModel({
+              sender: req.user!._id,
+              receiver: post.author._id,
+              type: "newComment",
+              target: { post: postId, comment: newComment._id },
+            })
+          : null;
 
-    await withTransaction(async session => {
       await Promise.all([
         newComment.save({ session }),
         PostModel.updateOne({ _id: postId }, { $inc: { "count.comments": 1 } }, { session }),
         notification?.save({ session }) ?? Promise.resolve(),
       ]);
+
+      return newComment._id;
     });
 
-    res.status(201).json({ _id: newComment._id });
+    res.status(201).json({ _id: newCommentId });
   } catch (error) {
     handleControllerError("submitComment", error, next);
   }
@@ -320,19 +322,21 @@ export async function submitReply(req: Request<{ commentId: string }>, res: Resp
       throw new ApiError(403, { message: "Can't reply to due to a block relationship", code: ErrorCode.BLOCKED_USER });
     }
 
-    const newReply = new CommentModel({ post: comment.post._id, parent: commentId, commentor: req.user!._id, text: replyText });
-
-    const notification =
-      comment.commentor && String(comment.commentor._id) !== String(req.user!._id)
-        ? new NotificationModel({
-            sender: req.user!._id,
-            receiver: comment.commentor,
-            type: "newReply",
-            target: { post: comment.post._id, comment: newReply._id },
-          })
-        : null;
+    const postId = comment.post._id;
 
     const newReplyId = await withTransaction(async session => {
+      const newReply = new CommentModel({ post: postId, parent: commentId, commentor: req.user!._id, text: replyText });
+
+      const notification =
+        comment.commentor && String(comment.commentor._id) !== String(req.user!._id)
+          ? new NotificationModel({
+              sender: req.user!._id,
+              receiver: comment.commentor,
+              type: "newReply",
+              target: { post: postId, comment: newReply._id },
+            })
+          : null;
+
       await Promise.all([
         newReply.save({ session }),
         CommentModel.updateOne({ _id: commentId }, { $inc: { "count.replies": 1 } }, { session }),

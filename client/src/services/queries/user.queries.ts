@@ -95,6 +95,7 @@ export function useGetFollowingQuery(user: User) {
 
 export function useGetUserPostIdsQuery(username: User["username"]) {
   const queryClient = useQueryClient();
+  const authUser = queryClient.getQueryData<AuthUser>(["authUser"]);
 
   return useInfiniteQuery<PostIdPage, Error, Post["_id"][], ["user", User["username"], "posts"], PostIdPage["nextPageParam"]>({
     queryKey: ["user", username, "posts"],
@@ -114,12 +115,13 @@ export function useGetUserPostIdsQuery(username: User["username"]) {
 
     select: ({ pages }) => pages.flatMap(({ postIds }) => postIds),
 
-    staleTime: Infinity,
+    ...(authUser?.username === username ? { staleTime: 0 } : {}),
   });
 }
 
 export function useGetLikedPostIdsQuery(username: User["username"]) {
   const queryClient = useQueryClient();
+  const authUser = queryClient.getQueryData<AuthUser>(["authUser"]);
 
   return useInfiniteQuery<PostIdPage, Error, Post["_id"][], ["user", string, "liked-posts"], PostIdPage["nextPageParam"]>({
     queryKey: ["user", username, "liked-posts"],
@@ -137,7 +139,7 @@ export function useGetLikedPostIdsQuery(username: User["username"]) {
 
     select: ({ pages }) => pages.flatMap(({ postIds }) => postIds),
 
-    staleTime: Infinity,
+    ...(authUser?.username === username ? { staleTime: 0 } : {}),
   });
 }
 

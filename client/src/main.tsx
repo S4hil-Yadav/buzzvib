@@ -26,7 +26,7 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 2 * 60 * 1000,
-      gcTime: 1000,
+      gcTime: 2 * 60 * 1000,
       refetchOnWindowFocus: false,
       retry: (failureCount, err) => {
         if (axios.isAxiosError(err) && err.response?.status === 500) {

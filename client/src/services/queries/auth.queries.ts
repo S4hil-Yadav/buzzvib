@@ -7,6 +7,8 @@ export function useGetAuthQuery() {
     queryKey: ["authUser"],
     queryFn: () => apiClient.get<AuthUser>("/auth").then(res => res.data),
     refetchOnReconnect: true,
+    staleTime: Infinity,
+    gcTime: Infinity,
   });
 }
 
