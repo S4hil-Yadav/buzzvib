@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/axios";
 import type { Block, BlockPage, AuthUser, FollowRequest, FollowRequestPage, FollowStatus } from "@/types";
-import { buildInfiniteScrollQuery } from "@/utils/utils";
+import { buildInfiniteScrollQuery } from "@/utils";
 
 export function useGetFollowerRequestsQuery() {
   const queryClient = useQueryClient();

@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/axios";
 import type { Chatroom, ChatroomPage, Message, MessagePage } from "@/types";
-import { buildInfiniteScrollQuery } from "@/utils/utils.ts";
+import { buildInfiniteScrollQuery } from "@/utils";
 import chatDb from "@/lib/chatDb.ts";
 
 export function useGetChatroomsQuery() {

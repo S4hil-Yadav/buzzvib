@@ -53,7 +53,7 @@ export function HandleFollowButton({ user }: HandleFollowButtonProps) {
               title: "Signup?",
               message: "You must signup to use this feature",
               confirmButtonText: "signup",
-              onConfirm: () => navigate("/signup"),
+              onConfirm: () => navigate("/auth"),
             })
           );
         } else if (!followStatus.followingStatus) {
@@ -169,7 +169,7 @@ export function MessageButton({ user }: MessageButtonProps) {
               title: "Signup?",
               message: "You must signup to use this feature",
               confirmButtonText: "signup",
-              onConfirm: () => navigate("/signup"),
+              onConfirm: () => navigate("/auth"),
             })
           );
         } else {

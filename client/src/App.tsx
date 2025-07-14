@@ -4,7 +4,7 @@ import AuthPage from "@/pages/AuthPage";
 import HomePage from "@/pages/HomePage";
 import ProfilePage from "@/pages/ProfilePage";
 import CreatePostPage from "@/pages/CreatePostPage";
-import { excludeSidebarRoutes, excludeSideNavbarRoutes } from "@/utils/routes";
+import { excludeSidebarRoutes, excludeSideNavbarRoutes } from "@/constants/routes";
 import SearchPage from "@/pages/SearchPage";
 import NotificationPage from "@/pages/NotificationPage";
 import Sidebar from "@/components/layout/Sidebar";
@@ -15,11 +15,12 @@ import EditProfileDialog from "@/components/profile/EditProfileDialog";
 import SavedPostsPage from "@/pages/SavedPostsPage";
 import LikedPostsPage from "@/pages/LikedPostsPage";
 import RestrictedPage from "@/pages/RestrictedPage";
-import { Box, CircularProgress, useMediaQuery } from "@mui/material";
+import { Box, useMediaQuery } from "@mui/material";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import type { AuthUser } from "@/types";
 import NotFoundPage from "@/pages/NotFoundPage";
 import DislikedPostsPage from "@/pages/DislikedPostsPage";
+import LoadingApp from "@/components/elements/LoadingApp.tsx";
 
 export default function App() {
   const { data: authUser, isLoading, isSuccess } = useGetAuthQuery();
@@ -40,18 +41,7 @@ export default function App() {
   const navWidth = isMobile ? "100%" : isTablet ? "7.5rem" : "18.75rem";
 
   if (isLoading) {
-    return (
-      <Box
-        sx={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-        }}
-      >
-        <CircularProgress size={48} thickness={4} color="primary" />
-      </Box>
-    );
+    return <LoadingApp />;
   }
 
   return (
@@ -104,8 +94,7 @@ function PageRoutes({ authUser }: { authUser: AuthUser | undefined }) {
       <Routes location={bgLocation || location}>
         <Route path="/" element={<Navigate to="/home" />} />
         <Route path="/home" element={<HomePage />} />
-        <Route path="/signup" element={authUser ? <Navigate to="/home" /> : <AuthPage authType="signup" />} />
-        <Route path="/login" element={authUser ? <Navigate to="/home" /> : <AuthPage authType="login" />} />
+        <Route path="/auth" element={authUser ? <Navigate to="/home" /> : <AuthPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/create" element={authUser ? <CreatePostPage /> : <RestrictedPage />} />
         <Route path="/notifications" element={authUser ? <NotificationPage /> : <RestrictedPage />} />

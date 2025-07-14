@@ -26,3 +26,9 @@ export interface SessionData {
   currentSession: Session | undefined;
   otherSessions: Session[];
 }
+
+export interface Tokens {
+  accessToken: string;
+  refreshToken: string;
+  sessionId: string;
+}

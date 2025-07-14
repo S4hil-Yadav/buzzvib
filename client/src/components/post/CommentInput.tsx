@@ -112,7 +112,7 @@ const CommentInput = React.memo(
                   title: "Signup?",
                   message: "You must signup to use this feature.",
                   confirmButtonText: "signup",
-                  onConfirm: () => navigate("/signup"),
+                  onConfirm: () => navigate("/auth"),
                 })
               );
             }

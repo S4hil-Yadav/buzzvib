@@ -86,7 +86,7 @@ function LikeButton({ comment }: LikeButtonProps) {
               title: "Signup?",
               message: "You must signup to use this feature.",
               confirmButtonText: "signup",
-              onConfirm: () => navigate("/signup"),
+              onConfirm: () => navigate("/auth"),
             })
           );
           return;
@@ -138,7 +138,7 @@ function DislikeButton({ comment }: DislikeButtonProps) {
               title: "Signup?",
               message: "You must signup to use this feature.",
               confirmButtonText: "signup",
-              onConfirm: () => navigate("/signup"),
+              onConfirm: () => navigate("/auth"),
             })
           );
         } else {

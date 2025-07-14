@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/axios";
 import type { AuthUser, Post, ProfileUser, User, UserPage, FollowStatus, PostIdPage, PostPage } from "@/types";
-import { buildInfiniteScrollQuery, useGetAndCacheFollowStatuses } from "@/utils/utils";
+import { buildInfiniteScrollQuery, useGetAndCacheFollowStatuses } from "@/utils";
 
 export function useGetProfileUserQuery(username: User["username"]) {
   const queryClient = useQueryClient();

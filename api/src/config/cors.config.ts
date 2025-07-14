@@ -1,6 +1,6 @@
 export const corsConfig = {
   origin: process.env.CLIENT_URL,
-  credentials: true,
+  // credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: ["Content-Type", "Authorization", "x-session-id", "x-refresh-token"],
 };

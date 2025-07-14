@@ -25,7 +25,7 @@ import ToastProvider from "@/wrappers/ToastProvider.tsx";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: Infinity,
+      staleTime: 2 * 60 * 1000,
       gcTime: 1000,
       refetchOnWindowFocus: false,
       retry: (failureCount, err) => {
@@ -60,4 +60,3 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     </QueryClientProvider>
   </BrowserRouter>
 );
-

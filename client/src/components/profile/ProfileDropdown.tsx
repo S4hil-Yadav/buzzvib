@@ -44,7 +44,7 @@ export default function ProfileDropdown({ user, followStatus }: ProfileDropdownP
           title: "Signup?",
           message: "You must signup to use this feature.",
           confirmButtonText: "signup",
-          onConfirm: () => navigate("/signup"),
+          onConfirm: () => navigate("/auth"),
         })
       );
       return;

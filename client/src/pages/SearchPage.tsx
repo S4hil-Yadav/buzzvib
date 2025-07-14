@@ -1,7 +1,7 @@
 import { Box, Avatar, Typography, List, InputBase, Paper, Tabs, Tab, ListItem, Link as MuiLink, useTheme } from "@mui/material";
 import { Search as SearchIcon, SearchOffOutlined as SearchOffIcon } from "@mui/icons-material";
 import { useEffect, useRef, useState } from "react";
-import { useLocation, Link as RouterLink } from "react-router-dom";
+import { useLocation, Link as RouterLink, useNavigate } from "react-router-dom";
 import { useSearchPostsQuery } from "@/services/queries/post.queries";
 import { useSearchUsersQuery } from "@/services/queries/user.queries";
 import type { User } from "@/types";
@@ -17,6 +17,7 @@ const tabs: Tab[] = ["users", "posts"];
 export default function SearchPage() {
   const theme = useTheme();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const [tab, setTab] = useState<"users" | "posts">("users");
   const [term, setTerm] = useState<string>("");
@@ -25,16 +26,15 @@ export default function SearchPage() {
   const timeoutRef = useRef<NodeJS.Timeout>(null);
 
   useEffect(() => {
-    if (["users", "posts"].includes(location.state?.search)) {
-      setTab(location.state.search);
-      location.state.search = null;
+    const params = new URLSearchParams(location.search);
+    const searchParam = params.get("searchParam") ?? "";
+    const searchType = params.get("searchType");
+
+    if (searchType === "users" || searchType === "posts") {
+      setTab(searchType);
     }
-    if (typeof location.state?.searchParam === "string") {
-      setTerm(location.state.searchParam);
-      setSearchTerm(location.state.searchParam);
-      location.state.searchParam = null;
-    }
-  }, [location.state]);
+    setTerm(searchParam);
+  }, [location.search]);
 
   useEffect(() => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -107,7 +107,11 @@ export default function SearchPage() {
             width: "100%",
           }}
         >
-          <SearchInput tab={tab} value={term} onChange={e => setTerm(e.target.value)} />
+          <SearchInput
+            tab={tab}
+            value={term}
+            onChange={e => navigate(`?searchParam=${encodeURIComponent(e.target.value)}&searchType=${tab}`)}
+          />
           <Box sx={{ width: "100%" }}>
             <Tabs
               value={tab}

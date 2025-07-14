@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/axios";
 import type { AuthUser, Notification, NotificationPage } from "@/types";
-import { buildInfiniteScrollQuery } from "../../utils/utils";
+import { buildInfiniteScrollQuery } from "@/utils";
 
 export function useGetNotificationsQuery() {
   const queryClient = useQueryClient();

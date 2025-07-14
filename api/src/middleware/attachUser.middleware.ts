@@ -6,7 +6,10 @@ import { logApiError } from "@/loggers/api.logger.js";
 import mongoose from "mongoose";
 
 export async function attachUser(req: Request, _res: Response, next: NextFunction) {
-  const { accessToken, sessionId } = req.cookies;
+  const sessionId = req.headers["x-session-id"];
+
+  const authHeader = req.headers.authorization;
+  const accessToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : "";
 
   try {
     if (!sessionId || req.path === "/api/v1/auth/refresh-token") return next();

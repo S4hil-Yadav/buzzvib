@@ -53,9 +53,7 @@ npm run api
 npm run client
 
 # Start BullMQ workers
-npm run worker:notify-followers
-npm run worker:create-post
-npm run worker:delete-post
+npm run workers
 ```
 
 ---

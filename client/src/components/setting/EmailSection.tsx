@@ -12,7 +12,7 @@ import {
 } from "@mui/material";
 import { ExpandMore as ExpandIcon, EmailOutlined as EmailIcon } from "@mui/icons-material";
 import { useState } from "react";
-import { inputSx } from "@/utils/utils";
+import { inputSx } from "@/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import type { AuthUser } from "@/types";
 import {

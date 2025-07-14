@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/axios";
 import type { CommentPage, Comment, CommentIdPage, Post, PostIdPage, PostPage } from "@/types";
-import { buildInfiniteScrollQuery } from "@/utils/utils";
+import { buildInfiniteScrollQuery } from "@/utils";
 
 export function useGetPostIdsQuery() {
   const queryClient = useQueryClient();

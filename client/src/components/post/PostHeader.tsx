@@ -56,7 +56,7 @@ export default function PostHeader({ post, deletePostMutation }: PostHeaderProps
           title: "Signup Required",
           message: "Please signup to save posts.",
           confirmButtonText: "signup",
-          onConfirm: () => navigate("/signup"),
+          onConfirm: () => navigate("/auth"),
         })
       );
       return;

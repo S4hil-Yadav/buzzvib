@@ -142,7 +142,7 @@ export function buildUserEnrichmentStages(reqUser: Request["user"], options?: { 
 export function buildUserFieldEnrichmentStage(
   reqUser: Request["user"],
   userField: string,
-  resultField: string = userField,
+  resultField = userField,
   options?: { filterPrivateAccounts?: boolean; filterReqUser?: boolean; preserveNullUsers?: boolean }
 ) {
   const { filterPrivateAccounts = false, filterReqUser = false, preserveNullUsers = false } = options ?? {};
@@ -173,7 +173,7 @@ export function buildUserFieldEnrichmentStage(
   ];
 }
 
-export function buildAddReactionStage(reqUser: Request["user"], postField: string, resultField: string = "reaction") {
+export function buildAddReactionStage(reqUser: Request["user"], postField: string, resultField = "reaction") {
   return [
     reqUser
       ? {
@@ -198,7 +198,7 @@ export function buildAddReactionStage(reqUser: Request["user"], postField: strin
   ];
 }
 
-export function buildAddPostSaveStatusStage(reqUser: Request["user"], postField: string, resultField: string = "savedAt") {
+export function buildAddPostSaveStatusStage(reqUser: Request["user"], postField: string, resultField = "savedAt") {
   return [
     reqUser
       ? {
@@ -277,7 +277,7 @@ export function buildPostEnrichmentStages(
 export function buildPostFieldEnrichmentStage(
   reqUser: Request["user"],
   postField: string,
-  resultField: string = postField,
+  resultField = postField,
   options?: {
     enrichUserStage?: boolean;
     filterReqUser?: boolean;

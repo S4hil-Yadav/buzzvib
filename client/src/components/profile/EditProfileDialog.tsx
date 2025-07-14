@@ -27,7 +27,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useUpdateProfileMutation } from "@/services/mutations/user.mutations";
 import type { AuthUser, UpdateUserFields } from "@/types";
 import { useEffect, useRef, useState } from "react";
-import { inputSx } from "@/utils/utils";
+import { inputSx } from "@/utils";
 
 export default function EditProfile() {
   const queryClient = useQueryClient();

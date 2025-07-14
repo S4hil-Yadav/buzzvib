@@ -5,7 +5,7 @@ import getRequestMeta from "@/utils/requestMeta.utils.js";
 import type { CookieOptions, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 
-export default async function generateTokens(req: Request, res: Response, userId: User["_id"]) {
+export default async function generateTokens(req: Request, _res: Response, userId: User["_id"]) {
   const payload = { userId, jti: crypto.randomUUID(), iat: Date.now() };
 
   const accessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "15m" });
@@ -13,7 +13,7 @@ export default async function generateTokens(req: Request, res: Response, userId
 
   const { ip, location, device } = await getRequestMeta(req);
 
-  const existingSessions = await SessionModel.find({ user: userId })
+  const existingSessions = await SessionModel.find({ user: userId, expiresAt: { $gt: new Date() } })
     .sort({ lastUsedAt: 1 })
     .select("_id ip device")
     .lean<Pick<Session, "_id" | "ip" | "device">[]>();
@@ -51,37 +51,39 @@ export default async function generateTokens(req: Request, res: Response, userId
     sessionsToRemove?.length ? SessionModel.deleteMany({ _id: { $in: sessionsToRemove } }) : Promise.resolve(),
   ]);
 
-  res.cookie("accessToken", accessToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV !== "development",
-    sameSite: process.env.MODE === "production" ? "none" : "strict",
-    maxAge: 15 * 60 * 1000, // 15 minutes
-  });
-
-  res.cookie("refreshToken", refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV !== "development",
-    sameSite: process.env.MODE === "production" ? "none" : "strict",
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    path: "/auth/refresh-token",
-  });
-
-  res.cookie("sessionId", session._id, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV !== "development",
-    sameSite: process.env.MODE === "production" ? "none" : "strict",
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-  });
+  return { accessToken, refreshToken, sessionId: String(session._id) };
 }
 
-export function clearAuthCookies(res: Response) {
-  const commonOptions: CookieOptions = {
-    httpOnly: true,
-    secure: process.env.NODE_ENV !== "development",
-    sameSite: process.env.MODE === "production" ? "none" : "strict",
-  };
+//   res.cookie("accessToken", accessToken, {
+//     httpOnly: true,
+//     secure: process.env.NODE_ENV !== "development",
+//     sameSite: process.env.MODE === "production" ? "none" : "strict",
+//     maxAge: 15 * 60 * 1000, // 15 minutes
+//   });
 
-  res.clearCookie("accessToken", commonOptions);
-  res.clearCookie("refreshToken", { ...commonOptions, path: "/auth/refresh-token" });
-  res.clearCookie("sessionId", commonOptions);
-}
+//   res.cookie("refreshToken", refreshToken, {
+//     httpOnly: true,
+//     secure: process.env.NODE_ENV !== "development",
+//     sameSite: process.env.MODE === "production" ? "none" : "strict",
+//     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+//     path: "/auth/refresh-token",
+//   });
+
+//   res.cookie("sessionId", session._id, {
+//     httpOnly: true,
+//     secure: process.env.NODE_ENV !== "development",
+//     sameSite: process.env.MODE === "production" ? "none" : "strict",
+//     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+//   });
+
+// export function clearAuthCookies(res: Response) {
+//   const commonOptions: CookieOptions = {
+//     httpOnly: true,
+//     secure: process.env.NODE_ENV !== "development",
+//     sameSite: process.env.MODE === "production" ? "none" : "strict",
+//   };
+
+//   res.clearCookie("accessToken", commonOptions);
+//   res.clearCookie("refreshToken", { ...commonOptions, path: "/auth/refresh-token" });
+//   res.clearCookie("sessionId", commonOptions);
+// }

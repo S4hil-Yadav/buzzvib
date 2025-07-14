@@ -30,7 +30,8 @@ export default function RestrictedPage() {
         <Stack direction="row" spacing={2} justifyContent="center">
           <Button
             component={RouterLink}
-            to="/login"
+            to="/auth"
+            state={{ authType: "login" }}
             sx={{
               border: "1px solid",
               color: "text.secondary",
@@ -46,7 +47,7 @@ export default function RestrictedPage() {
           </Button>
           <Button
             component={RouterLink}
-            to="/signup"
+            to="/auth"
             sx={{
               backgroundColor: "primary.main",
               color: "primary.contrastText",

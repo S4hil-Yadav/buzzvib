@@ -16,7 +16,7 @@ import {
   ExpandMore as ExpanedIcon,
 } from "@mui/icons-material";
 import { Link as RouterLink } from "react-router-dom";
-import { inputSx } from "@/utils/utils";
+import { inputSx } from "@/utils";
 import { useState } from "react";
 import { useChangePasswordMutation } from "@/services/mutations/user.mutations";
 import toast from "react-hot-toast";

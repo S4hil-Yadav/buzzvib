@@ -41,8 +41,7 @@ export default function TextWithExpand({ originalText, minHeight = 5 }: TextWith
             <MuiLink
               component={RouterLink}
               key={index}
-              to="/search"
-              state={{ search: "posts", searchParam: word }}
+              to={`/search?searchTerm=posts&searchParam=${word}`}
               style={{ color: "#3B82F6", textDecoration: "none" }}
               onMouseOver={e => (e.currentTarget.style.textDecoration = "underline")}
               onMouseOut={e => (e.currentTarget.style.textDecoration = "none")}
@@ -53,8 +52,7 @@ export default function TextWithExpand({ originalText, minHeight = 5 }: TextWith
             <MuiLink
               component={RouterLink}
               key={index}
-              to="/search"
-              state={{ search: "users", searchParam: word }}
+              to={`/search?searchTerm=users&searchParam=${word}`}
               style={{ color: "#3B82F6", textDecoration: "none" }}
               onMouseOver={e => (e.currentTarget.style.textDecoration = "underline")}
               onMouseOut={e => (e.currentTarget.style.textDecoration = "none")}

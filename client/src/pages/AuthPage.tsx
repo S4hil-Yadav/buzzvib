@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, Link as RouterLink } from "react-router-dom";
+import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import {
   Box,
   Button,
@@ -24,7 +24,7 @@ import {
 } from "@mui/icons-material";
 import { FcGoogle as GoogleIcon } from "react-icons/fc";
 import { useLoginMutation, useSignupMutation, useGoogleAuthMutation } from "@/services/mutations/auth.mutations";
-import { inputSx } from "@/utils/utils";
+import { inputSx } from "@/utils";
 import { useGoogleLogin } from "@react-oauth/google";
 import toast from "react-hot-toast";
 
@@ -37,15 +37,16 @@ const initialUserFields = {
 
 const initialTouched = { fullname: false, username: false, email: false, password: false };
 
-interface AuthPageProps {
-  authType: "login" | "signup";
-}
+export default function AuthPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
 
-export default function AuthPage({ authType }: AuthPageProps) {
+  const inputs = useRef(null);
+
+  const [authType, setAuthType] = useState<"login" | "signup">(location.state?.authType === "login" ? "login" : "signup");
   const [userFields, setUserFields] = useState(initialUserFields);
   const [touched, setTouched] = useState(initialTouched);
   const [showPassword, setShowPassword] = useState(false);
-  const inputs = useRef(null);
 
   useEffect(() => {
     setTouched(initialTouched);
@@ -65,13 +66,17 @@ export default function AuthPage({ authType }: AuthPageProps) {
   const { mutate: googleAuth, isPending: isPendingGoogleLogin, isSuccess: isSuccessGoogleLogin } = useGoogleAuthMutation();
 
   const googleLogin = useGoogleLogin({
-    onSuccess: async ({ access_token }) => {
-      googleAuth({ access_token });
-    },
+    flow: "auth-code",
+    ux_mode: "redirect",
+    redirect_uri: `${import.meta.env.VITE_CLIENT_URL}/auth`,
   });
 
-  const isPending = isPendingLogin || isPendingSignup || isPendingGoogleLogin;
-  const isSuccess = isSuccessLogin || isSuccessSignup || isSuccessGoogleLogin;
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const code = urlParams.get("code");
+
+    if (code) googleAuth({ code });
+  }, [googleAuth, location.search, navigate]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -105,6 +110,9 @@ export default function AuthPage({ authType }: AuthPageProps) {
       }
     }
   }
+
+  const isPending = isPendingLogin || isPendingSignup || isPendingGoogleLogin;
+  const isSuccess = isSuccessLogin || isSuccessSignup || isSuccessGoogleLogin;
 
   return (
     <Box
@@ -278,7 +286,7 @@ export default function AuthPage({ authType }: AuthPageProps) {
                   {authType === "login" && (
                     <Box textAlign="right" sx={{ mt: 1 }}>
                       <MuiLink
-                        component={Link}
+                        component={RouterLink}
                         to="/reset-password"
                         sx={{ color: "primary.main", ":hover": { color: "primary.dark", bgcolor: "transparent" } }}
                       >
@@ -351,23 +359,22 @@ export default function AuthPage({ authType }: AuthPageProps) {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    gap: 1.5,
                     color: "text.secondary",
                   }}
                 >
                   {authType === "signup" ? "Already have an account?" : "Don't have an account?"}
-                  <Box
-                    component={RouterLink}
-                    to={isPending ? "#" : authType === "signup" ? "/login" : "/signup"}
+                  <Button
+                    disableTouchRipple
+                    onClick={() => setAuthType(prev => (prev === "login" ? "signup" : "login"))}
                     sx={{
                       textTransform: "capitalize",
                       fontWeight: 300,
                       color: "primary.dark",
-                      ":hover": { opacity: 0.8 },
+                      ":hover": { opacity: 0.5, bgcolor: "transparent" },
                     }}
                   >
                     {authType === "signup" ? "login" : "signup"}
-                  </Box>
+                  </Button>
                 </Typography>
               </Stack>
             </Stack>

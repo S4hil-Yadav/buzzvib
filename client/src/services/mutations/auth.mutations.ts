@@ -4,16 +4,18 @@ import { apiClient } from "@/lib/axios";
 import toast from "react-hot-toast";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { type AuthUser, type AuthFields, type SessionData } from "@/types";
+import { type AuthUser, type AuthFields, type SessionData, type Tokens } from "@/types";
 import axios from "axios";
+import { setTokens } from "@/utils";
 
 export function useSignupMutation() {
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error, { userFields: AuthFields }>({
-    mutationFn: ({ userFields }) => apiClient.post<void>("/auth/signup", { userFields }).then(res => res.data),
+  return useMutation<Tokens, Error, { userFields: AuthFields }>({
+    mutationFn: ({ userFields }) => apiClient.post<Tokens>("/auth/signup", { userFields }).then(res => res.data),
 
-    onSuccess: () => {
+    onSuccess: data => {
+      setTokens(data);
       queryClient.invalidateQueries({ queryKey: ["authUser"] });
     },
 
@@ -28,10 +30,11 @@ export function useSignupMutation() {
 export function useLoginMutation() {
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error, { userFields: Pick<AuthFields, "email" | "password"> }>({
-    mutationFn: ({ userFields }) => apiClient.post<void>("/auth/login", { userFields }).then(res => res.data),
+  return useMutation<Tokens, Error, { userFields: Pick<AuthFields, "email" | "password"> }>({
+    mutationFn: ({ userFields }) => apiClient.post<Tokens>("/auth/login", { userFields }).then(res => res.data),
 
-    onSuccess: () => {
+    onSuccess: data => {
+      setTokens(data);
       queryClient.invalidateQueries({ queryKey: ["authUser"] });
     },
 
@@ -46,10 +49,11 @@ export function useLoginMutation() {
 export function useGoogleAuthMutation() {
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error, { access_token: string }>({
-    mutationFn: ({ access_token }) => apiClient.post<void>("/auth/google", { access_token }).then(res => res.data),
+  return useMutation<Tokens, Error, { code: string }>({
+    mutationFn: ({ code }) => apiClient.post<Tokens>("/auth/google", { code }).then(res => res.data),
 
-    onSuccess: () => {
+    onSuccess: data => {
+      setTokens(data);
       queryClient.invalidateQueries({ queryKey: ["authUser"] });
     },
 
@@ -71,9 +75,11 @@ export function useLogoutMutation() {
 
     onSuccess: () => {
       queryClient.clear();
+      localStorage.clear();
+
       toast.success("Logged out");
       dispatch(clearDraft());
-      navigate("/login");
+      navigate("/auth");
     },
 
     onError: err => {

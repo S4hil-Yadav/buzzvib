@@ -37,3 +37,9 @@ export interface Session {
   device: string | null;
   lastUsedAt: Date;
 }
+
+export interface Tokens {
+  accessToken: string;
+  refreshToken: string;
+  sessionId: string;
+}

@@ -47,7 +47,7 @@ function LikeButton({ post }: { post: Post }) {
           title: "Signup?",
           message: "You must signup to use this feature.",
           confirmButtonText: "signup",
-          onConfirm: () => navigate("/signup"),
+          onConfirm: () => navigate("/auth"),
         })
       );
       return;
@@ -104,7 +104,7 @@ function DislikeButton({ post }: { post: Post }) {
           title: "Signup?",
           message: "You must signup to use this feature.",
           confirmButtonText: "signup",
-          onConfirm: () => navigate("/signup"),
+          onConfirm: () => navigate("/auth"),
         })
       );
       return;

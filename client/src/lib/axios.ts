@@ -1,8 +1,23 @@
+import type { Tokens } from "@/types/auth.js";
+import { clearTokens, setTokens } from "@/utils";
 import axios, { type InternalAxiosRequestConfig } from "axios";
 
 const baseURL = `${import.meta.env.VITE_API_URL}/api/v1`;
 
-export const apiClient = axios.create({ baseURL, withCredentials: true });
+export const apiClient = axios.create({ baseURL });
+
+apiClient.interceptors.request.use(
+  config => {
+    const accessToken = localStorage.getItem("accessToken");
+    const sessionId = localStorage.getItem("sessionId");
+
+    if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
+    if (sessionId) config.headers["x-session-id"] = sessionId;
+
+    return config;
+  },
+  error => Promise.reject(error)
+);
 
 let isRefreshing = false;
 let queuedRequests: (() => void)[] = [];
@@ -32,12 +47,23 @@ apiClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        await axios.post<void>(`${baseURL}/auth/refresh-token`, {}, { withCredentials: true });
+        const refreshToken = localStorage.getItem("refreshToken");
+
+        const { data } = await axios.post<Tokens>(
+          `${baseURL}/auth/refresh-token`,
+          {},
+          { headers: refreshToken ? { "x-refresh-token": refreshToken } : {} }
+        );
+
+        setTokens(data);
 
         queuedRequests.forEach(cb => cb());
         queuedRequests = [];
         return apiClient(originalRequest);
       } catch (err) {
+        if (axios.isAxiosError(err) && ["INVALID_REFRESH_TOKEN", "MISSING_REFRESH_TOKEN"].includes(err.response?.data?.code)) {
+          clearTokens();
+        }
         queuedRequests = [];
         return Promise.reject(err);
       } finally {

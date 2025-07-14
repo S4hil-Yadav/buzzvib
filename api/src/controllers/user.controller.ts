@@ -717,7 +717,8 @@ export async function changePassword(req: Request, res: Response<void>, next: Ne
       }
     });
 
-    await SessionModel.deleteMany({ user: req.user!._id, refreshToken: { $ne: req.cookies.refreshToken } });
+    const currentSessionId = req.headers["x-session-id"];
+    await SessionModel.deleteMany({ user: req.user!._id, _id: { $ne: currentSessionId } });
 
     res.status(204).end();
   } catch (error) {

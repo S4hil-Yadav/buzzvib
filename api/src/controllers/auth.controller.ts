@@ -1,9 +1,9 @@
 import UserModel from "@/models/user.model.js";
 import bcrypt from "bcryptjs";
-import generateTokens, { clearAuthCookies } from "@/lib/jwt.js";
+import generateTokens from "@/lib/jwt.js";
 import { ApiError, ErrorCode, handleControllerError } from "@/lib/error.js";
 import type { NextFunction, Request, Response } from "express";
-import type { AuthUser, GoogleUser, Session, User, VerificationToken } from "types";
+import type { AuthUser, GoogleUser, Session, Tokens, User, VerificationToken } from "types";
 import axios from "axios";
 import { generateRandomPassword, generateUniqueUsername, uploadImageFromUrl } from "@/utils/auth.utils.js";
 import crypto from "crypto";
@@ -35,7 +35,7 @@ export async function getAuthUser(req: Request, res: Response<AuthUser>, next: N
   }
 }
 
-export async function signup(req: Request, res: Response<Record<string, string>>, next: NextFunction) {
+export async function signup(req: Request, res: Response<Tokens>, next: NextFunction) {
   try {
     if (!isValidReqBody(req.body, ["userFields"])) {
       throw new ApiError(400, { message: "Invalid request body", code: ErrorCode.INVALID_REQUEST_BODY });
@@ -79,17 +79,17 @@ export async function signup(req: Request, res: Response<Record<string, string>>
 
     const newUser = await UserModel.create({ email, username, fullname, password: hashedPassword });
 
-    await generateTokens(req, res, newUser._id);
+    const tokens = await generateTokens(req, res, newUser._id);
+
+    res.status(200).json(tokens);
 
     sendWelcomeEmail(email, fullname).catch(error => logApiError("Failed to send welcome email:", error));
-
-    res.status(201).end();
   } catch (error) {
     handleControllerError("signup", error, next);
   }
 }
 
-export async function login(req: Request, res: Response<Record<string, string>>, next: NextFunction) {
+export async function login(req: Request, res: Response<Tokens>, next: NextFunction) {
   try {
     if (!isValidReqBody(req.body, ["userFields"])) {
       throw new ApiError(400, { message: "Invalid request body", code: ErrorCode.INVALID_REQUEST_BODY });
@@ -116,29 +116,37 @@ export async function login(req: Request, res: Response<Record<string, string>>,
       throw new ApiError(401, { message: "Invalid credentials", code: ErrorCode.INVALID_CREDENTIALS });
     }
 
-    await generateTokens(req, res, user._id);
+    const tokens = await generateTokens(req, res, user._id);
+
+    res.status(200).json(tokens);
 
     sendLoginAlertEmail(email, req).catch(error => logApiError("Failed to send login alert email:", error));
-
-    res.status(201).end();
   } catch (error) {
     handleControllerError("login", error, next);
   }
 }
 
-export async function googleOAuth(req: Request, res: Response<Record<string, string>>, next: NextFunction) {
+export async function googleOAuth(req: Request, res: Response<Tokens>, next: NextFunction) {
   try {
-    if (!isValidReqBody(req.body, ["access_token"])) {
+    if (!isValidReqBody(req.body, ["code"])) {
       throw new ApiError(400, { message: "Invalid request body", code: ErrorCode.INVALID_REQUEST_BODY });
     }
 
-    const { access_token } = req.body;
-    if (typeof access_token !== "string") {
+    const { code } = req.body;
+    if (typeof code !== "string") {
       throw new ApiError(400, { message: "Invalid access token", code: ErrorCode.INVALID_ACCESS_TOKEN });
     }
 
+    const { data: tokenRes } = await axios.post("https://oauth2.googleapis.com/token", {
+      code,
+      client_id: process.env.GOOGLE_CLIENT_ID,
+      client_secret: process.env.GOOGLE_CLIENT_SECRET,
+      redirect_uri: process.env.GOOGLE_REDIRECT_URI,
+      grant_type: "authorization_code",
+    });
+
     const { data: googleUser } = await axios.get<GoogleUser>("https://www.googleapis.com/oauth2/v3/userinfo", {
-      headers: { Authorization: `Bearer ${access_token}` },
+      headers: { Authorization: `Bearer ${tokenRes.access_token}` },
     });
 
     const { email, name: fullname, picture } = googleUser;
@@ -172,9 +180,9 @@ export async function googleOAuth(req: Request, res: Response<Record<string, str
       sendWelcomeEmail(email, fullname).catch(error => logApiError("Failed to send welcome email:", error));
     }
 
-    await generateTokens(req, res, userId);
+    const tokens = await generateTokens(req, res, userId);
 
-    res.status(201).end();
+    res.status(200).json(tokens);
   } catch (error) {
     handleControllerError("googleOAuth", error, next);
   }
@@ -182,28 +190,25 @@ export async function googleOAuth(req: Request, res: Response<Record<string, str
 
 export async function refreshToken(req: Request, res: Response, next: NextFunction) {
   try {
-    const { refreshToken } = req.cookies;
+    const refreshToken = req.headers["x-refresh-token"];
 
     if (!refreshToken) {
-      clearAuthCookies(res);
+      // clearAuthCookies(res);
       throw new ApiError(401, { message: "No refresh token", code: ErrorCode.MISSING_REFRESH_TOKEN });
     }
 
-    const existingToken = await SessionModel.findOne({ refreshToken })
-      .select("_id expiresAt user")
-      .lean<{ _id: Session["_id"]; expiresAt: Date; user: User["_id"] }>();
+    const existingToken = await SessionModel.findOne({ refreshToken, expiresAt: { $gt: new Date() } })
+      .select("_id user")
+      .lean<{ _id: Session["_id"]; user: User["_id"] }>();
 
     if (!existingToken) {
-      clearAuthCookies(res);
+      // clearAuthCookies(res);
       throw new ApiError(401, { message: "Invalid refresh token", code: ErrorCode.INVALID_REFRESH_TOKEN });
-    } else if (existingToken.expiresAt < new Date()) {
-      clearAuthCookies(res);
-      throw new ApiError(401, { message: "Token expired", code: ErrorCode.REFRESH_TOKEN_EXPIRED });
     }
 
-    await generateTokens(req, res, existingToken.user);
+    const tokens = await generateTokens(req, res, existingToken.user);
 
-    res.status(204).end();
+    res.status(200).json(tokens);
   } catch (error) {
     handleControllerError("refreshToken", error, next);
   }
@@ -211,9 +216,9 @@ export async function refreshToken(req: Request, res: Response, next: NextFuncti
 
 export async function logout(req: Request, res: Response<void>, next: NextFunction) {
   try {
-    clearAuthCookies(res);
+    // clearAuthCookies(res);
 
-    const { sessionId } = req.cookies;
+    const sessionId = req.headers["x-session-id"];
 
     if (sessionId) {
       await SessionModel.deleteOne({ _id: sessionId });
@@ -321,7 +326,7 @@ export async function getAllSessions(
       .sort({ lastUsedAt: -1 })
       .lean<Session[]>();
 
-    const currentSessionId = req.cookies.sessionId;
+    const currentSessionId = req.headers["x-session-id"];
 
     const currentSession = sessions.find(s => String(s._id) === currentSessionId);
     const otherSessions = sessions.filter(s => String(s._id) !== currentSessionId);
@@ -356,7 +361,8 @@ export async function logoutSession(req: Request<{ sessionId: string }>, res: Re
 
 export async function logoutAllSessions(req: Request, res: Response, next: NextFunction) {
   try {
-    await SessionModel.deleteMany({ user: req.user!._id, refreshToken: { $ne: req.cookies.refreshToken } });
+    const currentSessionId = req.headers["x-session-id"];
+    await SessionModel.deleteMany({ user: req.user!._id, _id: { $ne: currentSessionId } });
 
     res.status(204).end();
   } catch (error) {

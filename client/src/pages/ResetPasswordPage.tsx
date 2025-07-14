@@ -16,7 +16,7 @@ import {
   VisibilityOutlined as ShowPasswordIcon,
   VisibilityOffOutlined as HidePasswordIcon,
 } from "@mui/icons-material";
-import { inputSx } from "@/utils/utils";
+import { inputSx } from "@/utils";
 import { useConfirmPasswordResetMutation, useRequestPasswordResetMutation } from "@/services/mutations/auth.mutations";
 import toast from "react-hot-toast";
 import { useLocation } from "react-router-dom";
