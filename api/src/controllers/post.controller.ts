@@ -19,7 +19,7 @@ import { notifyFollowersQueue } from "@/queues/notifyFollowers.queue.js";
 import { getSocketIOInstance } from "@/sockets/ioInstance.js";
 import { hasInvalidFile } from "@/utils/fileValidation.js";
 
-export async function createPost(req: Request, res: Response<Pick<Post, "_id">>, next: NextFunction) {
+export async function createPost(req: Request, res: Response<Pick<Post, "_id" | "status">>, next: NextFunction) {
   try {
     const io = getSocketIOInstance();
 
@@ -41,9 +41,11 @@ export async function createPost(req: Request, res: Response<Pick<Post, "_id">>,
       throw new ApiError(400, { message: "Post can't be empty", code: ErrorCode.INVALID_INPUT });
     }
 
+    const status = files.length ? "processing" : "published";
+
     const postId = await withTransaction(async session => {
       const [postArr] = await Promise.all([
-        PostModel.create([{ author: req.user!._id, title, text, hashtags, status: files.length ? "processing" : "published" }], {
+        PostModel.create([{ author: req.user!._id, title, text, hashtags, status }], {
           session,
         }),
         UserModel.updateOne({ _id: req.user!._id }, { $inc: { "count.posts": 1 } }, { session }),
@@ -52,7 +54,7 @@ export async function createPost(req: Request, res: Response<Pick<Post, "_id">>,
       return postArr[0]._id;
     });
 
-    res.status(201).json({ _id: postId });
+    res.status(201).json({ _id: postId, status });
 
     notifyFollowersQueue
       .add(
@@ -117,7 +119,7 @@ export async function createPost(req: Request, res: Response<Pick<Post, "_id">>,
   }
 }
 
-export async function editPost(req: Request<{ postId: string }>, res: Response<void>, next: NextFunction) {
+export async function editPost(req: Request<{ postId: string }>, res: Response<Pick<Post, "status">>, next: NextFunction) {
   try {
     const io = getSocketIOInstance();
     const { postId: rawPostId } = req.params;
@@ -159,12 +161,11 @@ export async function editPost(req: Request<{ postId: string }>, res: Response<v
       });
     }
 
-    await PostModel.updateOne(
-      { _id: postId },
-      { $set: { title, text, hashtags, editedAt: new Date(), status: fileMeta.length ? "processing" : "published" } }
-    );
+    const status = fileMeta.length ? "processing" : "published";
 
-    res.status(204).end();
+    await PostModel.updateOne({ _id: postId }, { $set: { title, text, hashtags, editedAt: new Date(), status } });
+
+    res.status(200).json({ status });
 
     if (!fileMeta.length) return;
 

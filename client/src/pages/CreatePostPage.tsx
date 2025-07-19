@@ -44,7 +44,7 @@ export default function CreatePostPage() {
       const formData = new FormData();
       formData.append("post", JSON.stringify({ title, text }));
       files.forEach(fileContainer => fileContainer.isNew && formData.append("files", fileContainer.file));
-      await createPost({ formData, post: { title, text, status: files.length ? "processing" : "published" } });
+      await createPost({ formData, post: { title, text } });
       setTimeout(() => {
         files.forEach(fileContainer => fileContainer.isNew && revokeURLs(fileContainer));
         setFiles([]);

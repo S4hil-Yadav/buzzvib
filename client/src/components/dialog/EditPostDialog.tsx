@@ -66,10 +66,7 @@ export default function EditPostDialog() {
       });
       formData.append("fileMeta", JSON.stringify(fileMeta));
 
-      await editPost({
-        formData,
-        post: { _id: postId, title: newTitle, text: newText, status: fileMeta.length ? "processing" : "published" },
-      });
+      await editPost({ formData, post: { _id: postId, title: newTitle, text: newText } });
 
       dispatch(closeEditPost());
     } catch {}

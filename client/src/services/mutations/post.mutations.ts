@@ -14,16 +14,16 @@ export function useCreatePostMutation() {
 
   const dispatch = useDispatch<AppDispatch>();
 
-  return useMutation<Pick<Post, "_id">, Error, { formData: FormData; post: Pick<Post, "title" | "text" | "status"> }>({
+  return useMutation<Pick<Post, "_id" | "status">, Error, { formData: FormData; post: Pick<Post, "title" | "text"> }>({
     mutationFn: ({ formData }) =>
       apiClient
-        .post<Pick<Post, "_id">>("/posts", formData, {
+        .post<Pick<Post, "_id" | "status">>("/posts", formData, {
           headers: { "Content-Type": "multipart/form-data" },
           onUploadProgress: e => dispatch(setPostDraftUploadProgress(e.total ? Math.round((e.loaded * 100) / e.total) : 0)),
         })
         .then(res => res.data),
 
-    onSuccess: ({ _id: postId }, { post }) => {
+    onSuccess: ({ _id: postId, status }, { post }) => {
       const newPost: Post = {
         _id: postId,
         title: post.title,
@@ -38,7 +38,7 @@ export function useCreatePostMutation() {
         count: { comments: 0, reactions: { like: 0, dislike: 0 } },
         createdAt: new Date().toISOString(),
         editedAt: null,
-        status: post.status,
+        status: status,
         deletedAt: null,
         media: [],
         reaction: null,
@@ -81,23 +81,23 @@ export function useEditPostMutation() {
 
   const dispatch = useDispatch<AppDispatch>();
 
-  return useMutation<void, Error, { formData: FormData; post: Pick<Post, "_id" | "title" | "text" | "status"> }>({
+  return useMutation<Pick<Post, "status">, Error, { formData: FormData; post: Pick<Post, "_id" | "title" | "text"> }>({
     onMutate: () => {
       dispatch(setEditPostUploading());
     },
 
     mutationFn: ({ formData, post }) =>
       apiClient
-        .patch<void>(`/posts/${post._id}`, formData, {
+        .patch<Pick<Post, "status">>(`/posts/${post._id}`, formData, {
           headers: { "Content-Type": "multipart/form-data" },
           onUploadProgress: e => dispatch(setEditPostUploadProgress(e.total ? Math.round((e.loaded * 100) / e.total) : 0)),
         })
         .then(res => res.data),
 
-    onSuccess: (_data, { post }) => {
+    onSuccess: ({ status }, { post }) => {
       queryClient.setQueryData<Post>(
         ["post", post._id],
-        data => data && { ...data, title: post.title, text: post.text, media: [], status: post.status }
+        data => data && { ...data, title: post.title, text: post.text, media: [], status }
       );
 
       setTimeout(() => {

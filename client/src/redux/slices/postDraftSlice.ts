@@ -15,8 +15,8 @@ const postDraftSlice = createSlice({
   initialState,
   reducers: {
     setPostDraft: (state, { payload: { title, text } }: PayloadAction<{ title?: string; text?: string }>) => {
-      if (title) state.postDraft.title = title;
-      if (text) state.postDraft.text = text;
+      if (typeof title === "string") state.postDraft.title = title;
+      if (typeof text === "string") state.postDraft.text = text;
     },
     clearPostDraft: () => initialState,
     setPostDraftUploadProgress: (state, { payload }: PayloadAction<number>) => ({ ...state, uploadProgress: payload }),
