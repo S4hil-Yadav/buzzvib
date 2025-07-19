@@ -8,7 +8,6 @@ import {
   IconButton,
   Stack,
   TextField,
-  Tooltip,
   Typography,
   Paper,
   InputAdornment,
@@ -339,15 +338,30 @@ export default function AuthPage() {
 
               <Stack spacing={2}>
                 <Divider sx={{ "&::before, &::after": { borderColor: "divider" } }}>
-                  <Typography fontWeight={500}>or continue with</Typography>
+                  <Typography fontWeight={500}>or</Typography>
                 </Divider>
 
                 <Stack direction="row" justifyContent="center" spacing={1}>
-                  <Tooltip title="Google" placement="left">
-                    <IconButton onClick={() => googleLogin()} disabled={isPending || isSuccess}>
-                      <GoogleIcon size={35} />
-                    </IconButton>
-                  </Tooltip>
+                  <Button
+                    onClick={googleLogin}
+                    disabled={isPending || isSuccess}
+                    variant="outlined"
+                    startIcon={<GoogleIcon />}
+                    sx={{
+                      borderRadius: "999px",
+                      textTransform: "none",
+                      paddingX: 2,
+                      paddingY: 1,
+                      opacity: isPending || isSuccess ? 0.7 : 1,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      fontWeight: 400,
+                      color: "text.primary",
+                    }}
+                  >
+                    Continue with Google
+                  </Button>
                   {/* <Tooltip title={`${authType} with GitHub`} placement="right">
                     <IconButton size="large">
                       <GitHubIcon fontSize="large" sx={{ color: "text.primary" }} />

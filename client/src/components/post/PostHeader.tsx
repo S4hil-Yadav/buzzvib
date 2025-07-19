@@ -186,7 +186,7 @@ export default function PostHeader({ post, deletePostMutation }: PostHeaderProps
                   Edit
                 </Typography>
               </MenuItem>,
-              <MenuItem key="2" onClick={() => handleDelete(post)} disabled={isPendingDeletePost || post.status === "processing"}>
+              <MenuItem key="2" onClick={() => handleDelete(post)} disabled={isPendingDeletePost}>
                 <ListItemIcon>
                   {isPendingDeletePost ? (
                     <CircularProgress size={18} color="error" />

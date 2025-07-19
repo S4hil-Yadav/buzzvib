@@ -87,8 +87,9 @@ export default function PostBody({ post }: { post: Post }) {
                       maxHeight: 350,
                       objectFit: "cover",
                       borderRadius: 2,
-                      border: "2px solid",
-                      borderColor: "grey.300",
+                      borderLeft: "2px solid",
+                      borderRight: "2px solid",
+                      borderColor: "divider",
                     }}
                     onClick={() => setOpenBigCarousel(true)}
                   />
