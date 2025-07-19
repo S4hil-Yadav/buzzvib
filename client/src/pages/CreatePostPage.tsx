@@ -37,9 +37,9 @@ export default function CreatePostPage() {
       const title = postDraft.title.trim() || null;
       const text = postDraft.text.trim() || null;
 
-      // if (!title && !text && !files.length) {
-      //   throw new Error("Post can't be empty");
-      // }
+      if (!title && !text && !files.length) {
+        throw new Error("Post can't be empty");
+      }
 
       const formData = new FormData();
       formData.append("post", JSON.stringify({ title, text }));
