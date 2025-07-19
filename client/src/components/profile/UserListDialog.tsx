@@ -216,7 +216,7 @@ function UserList({ type, userCount, profileUser, handleClose, getUsersQuery }: 
                 color: "inherit",
               }}
             >
-              <Avatar src={user.profilePicture} alt={user.fullname} sx={{ width: 46, height: 46 }} />
+              <Avatar src={user.profilePicture?.displayUrl} alt={user.fullname} sx={{ width: 46, height: 46 }} />
               <Box>
                 <Typography fontWeight={600} noWrap>
                   {user.username}

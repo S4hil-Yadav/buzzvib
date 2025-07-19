@@ -18,13 +18,21 @@ export async function attachUser(req: Request, _res: Response, next: NextFunctio
 
     if (typeof decoded === "string" || typeof decoded.userId !== "string" || !mongoose.Types.ObjectId.isValid(decoded.userId)) {
       throw new jwt.JsonWebTokenError("Invalid access token: invalid decoded");
-    } else if (!(await SessionModel.exists({ _id: sessionId }))) {
+    }
+
+    const userId = new mongoose.Types.ObjectId(decoded.userId);
+    const [sessionExists, userExists] = await Promise.all([
+      SessionModel.exists({ _id: sessionId }),
+      UserModel.exists({ _id: userId, deletedAt: null }),
+    ]);
+
+    if (!sessionExists) {
       throw new jwt.JsonWebTokenError("Invalid session id: session not found");
-    } else if (!(await UserModel.exists({ _id: decoded.userId, deletedAt: null }))) {
+    } else if (!userExists) {
       throw new jwt.JsonWebTokenError("Invalid access token: user not found");
     }
 
-    req.user = { _id: new mongoose.Types.ObjectId(decoded.userId) };
+    req.user = { _id: userId };
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
       return next(new ApiError(401, { message: "Invalid access token", code: ErrorCode.INVALID_ACCESS_TOKEN }));
