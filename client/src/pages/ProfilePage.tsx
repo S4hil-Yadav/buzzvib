@@ -120,7 +120,7 @@ export default function ProfilePage() {
             }
           >
             <Avatar
-              src={user.profilePicture}
+              src={user.profilePicture?.originalUrl}
               sx={{
                 width: 120,
                 height: 120,

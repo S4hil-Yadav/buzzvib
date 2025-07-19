@@ -1,4 +1,3 @@
-import { clearDraft } from "@/redux/slices/postDraftSlice";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/axios";
 import toast from "react-hot-toast";
@@ -7,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { type AuthUser, type AuthFields, type SessionData, type Tokens } from "@/types";
 import axios from "axios";
 import { setTokens } from "@/utils";
+import { persistor, type AppDispatch } from "@/redux/store.ts";
 
 export function useSignupMutation() {
   const queryClient = useQueryClient();
@@ -19,9 +19,9 @@ export function useSignupMutation() {
       queryClient.invalidateQueries({ queryKey: ["authUser"] });
     },
 
-    onError: err => {
-      if (axios.isAxiosError(err)) {
-        toast.error(err.response?.data.message ?? "Something went wrong");
+    onError: error => {
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data.message ?? "Something went wrong");
       }
     },
   });
@@ -38,9 +38,9 @@ export function useLoginMutation() {
       queryClient.invalidateQueries({ queryKey: ["authUser"] });
     },
 
-    onError: err => {
-      if (axios.isAxiosError(err)) {
-        toast.error(err.response?.data.message ?? "Something went wrong");
+    onError: error => {
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data.message ?? "Something went wrong");
       }
     },
   });
@@ -57,9 +57,9 @@ export function useGoogleAuthMutation() {
       queryClient.invalidateQueries({ queryKey: ["authUser"] });
     },
 
-    onError: err => {
-      if (axios.isAxiosError(err)) {
-        toast.error(err.response?.data.message ?? "Something went wrong");
+    onError: error => {
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data.message ?? "Something went wrong");
       }
     },
   });
@@ -67,7 +67,7 @@ export function useGoogleAuthMutation() {
 
 export function useLogoutMutation() {
   const queryClient = useQueryClient();
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
 
   return useMutation<void, Error>({
@@ -76,15 +76,16 @@ export function useLogoutMutation() {
     onSuccess: () => {
       queryClient.clear();
       localStorage.clear();
+      dispatch({ type: "RESET_STORE" });
+      persistor.purge();
 
       toast.success("Logged out");
-      dispatch(clearDraft());
       navigate("/auth");
     },
 
-    onError: err => {
-      if (axios.isAxiosError(err)) {
-        toast.error(err.response?.data.message ?? "Something went wrong");
+    onError: error => {
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data.message ?? "Something went wrong");
       }
     },
   });
@@ -96,9 +97,9 @@ export function useRequestPasswordResetMutation() {
 
     onSuccess: () => toast.success("Reset link sent"),
 
-    onError: err => {
-      if (axios.isAxiosError(err)) {
-        toast.error(err.response?.data.message ?? "Something went wrong");
+    onError: error => {
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data.message ?? "Something went wrong");
       }
     },
   });
@@ -109,9 +110,9 @@ export function useConfirmPasswordResetMutation() {
     mutationFn: ({ secret, newPassword }) =>
       apiClient.post<void>("/auth/confirm-password-reset", { secret, newPassword }).then(res => res.data),
 
-    onError: err => {
-      if (axios.isAxiosError(err)) {
-        toast.error(err.response?.data.message ?? "Something went wrong");
+    onError: error => {
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data.message ?? "Something went wrong");
       }
     },
   });
@@ -127,9 +128,9 @@ export function useLogoutAllSessionsMutation() {
       queryClient.setQueryData<SessionData>(["sessions"], sessions => sessions && { ...sessions, otherSessions: [] });
     },
 
-    onError: err => {
-      if (axios.isAxiosError(err)) {
-        toast.error(err.response?.data.message ?? "Something went wrong");
+    onError: error => {
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data.message ?? "Something went wrong");
       }
     },
   });
@@ -149,9 +150,9 @@ export function useLogoutSessionMutation() {
       );
     },
 
-    onError: err => {
-      if (axios.isAxiosError(err)) {
-        toast.error(err.response?.data.message ?? "Something went wrong");
+    onError: error => {
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data.message ?? "Something went wrong");
       }
     },
   });

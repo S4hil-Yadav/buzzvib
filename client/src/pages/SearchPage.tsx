@@ -285,7 +285,7 @@ function UserList({
                 color: "inherit",
               }}
             >
-              <Avatar src={user.profilePicture} alt={user.fullname} sx={{ width: 52, height: 52 }} />
+              <Avatar src={user.profilePicture?.displayUrl} alt={user.fullname} sx={{ width: 52, height: 52 }} />
               <Box>
                 <Typography
                   fontWeight={600}

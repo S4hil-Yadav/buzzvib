@@ -6,10 +6,10 @@ import type { CommentPage, Comment, Post, User, Reaction, UserAccountVisibility 
 import NotificationModel from "@/models/notification.model.js";
 import ReactionModel from "@/models/reaction.model.js";
 import PostModel from "@/models/post.model.js";
-import { buildCommentEnrichmentStages, isBlockedByAnyAncestorOrRelatedUser } from "@/utils/aggregate.utils.js";
+import { buildCommentEnrichmentStages, isBlockedByAnyAncestorOrRelatedUser } from "@/utils/aggregate.js";
 import FollowModel from "@/models/follow.model.js";
-import { withTransaction } from "@/utils/db.utils.js";
-import { isValidReqBody } from "@/utils/typeGuard.utils.js";
+import { withTransaction } from "@/utils/db.js";
+import { isValidReqBody } from "@/utils/typeGuard.js";
 import { COMMENT_PAGE_SIZE } from "@/config/constants.js";
 
 export async function submitComment(req: Request<{ postId: string }>, res: Response<Pick<Comment, "_id">>, next: NextFunction) {

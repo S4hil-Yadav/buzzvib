@@ -1,5 +1,5 @@
 import { ApiError, ErrorCode } from "@/lib/error.js";
-import { isValidPostPayload, isValidUpdateUserFields } from "@/utils/typeGuard.utils.js";
+import { isValidFileMetaPayload, isValidPostPayload, isValidUpdateUserFields } from "@/utils/typeGuard.js";
 
 export function parseUpdateUserFields(userFields: unknown) {
   if (typeof userFields !== "string") {
@@ -39,4 +39,24 @@ export function parsePostPayload(postPayload: unknown) {
   }
 
   return parsedPostPayload;
+}
+
+export function parseFileMetaPayload(fileMetaPayload: unknown) {
+  if (typeof fileMetaPayload !== "string") {
+    throw new ApiError(400, { message: "Invalid payload type, expected stringified JSON", code: ErrorCode.INVALID_INPUT });
+  }
+
+  const parsedFileMetaPayload = (() => {
+    try {
+      return JSON.parse(fileMetaPayload);
+    } catch {
+      throw new ApiError(400, { message: "Malformed JSON payload.", code: ErrorCode.INVALID_INPUT });
+    }
+  })();
+
+  if (!isValidFileMetaPayload(parsedFileMetaPayload)) {
+    throw new ApiError(400, { message: "Invalid payload structure", code: ErrorCode.INVALID_INPUT });
+  }
+
+  return parsedFileMetaPayload;
 }

@@ -46,11 +46,8 @@ commentSchema.index({ deletedAt: 1 });
 commentSchema.index({ "count.reactions.like": -1 });
 commentSchema.index({ "count.reactions.dislike": -1 });
 commentSchema.index({ "count.replies": -1 });
-
-// commentSchema.pre(/^(find|update|countDocuments|aggregate)/, function (this: Query<any, any>, next) {
-//   this.where({ deletedAt: null });
-//   next();
-// });
+commentSchema.index({ parent: 1, deletedAt: 1 });
+commentSchema.index({ post: 1, deletedAt: 1 });
 
 const CommentModel = mongoose.model<IComment>("Comment", commentSchema);
 export default CommentModel;

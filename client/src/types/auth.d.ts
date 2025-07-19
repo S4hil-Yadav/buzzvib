@@ -10,8 +10,8 @@ export interface AuthFields {
 export interface UpdateUserFields {
   username: AuthUser["username"];
   fullname: AuthUser["fullname"];
-  profilePicture: AuthUser["profilePicture"];
   bio: AuthUser["bio"];
+  removeProfilePicture: boolean;
 }
 
 export interface Session {

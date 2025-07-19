@@ -1,7 +1,7 @@
 import { MAX_SESSIONS } from "@/config/constants.js";
 import SessionModel from "@/models/session.model.js";
 import type { Session, User } from "types";
-import getRequestMeta from "@/utils/requestMeta.utils.js";
+import getRequestMeta from "@/utils/requestMeta.js";
 import type { CookieOptions, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 

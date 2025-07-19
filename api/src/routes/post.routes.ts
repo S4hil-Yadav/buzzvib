@@ -9,6 +9,7 @@ import {
   togglePostReaction,
   togglePostSave,
   searchPosts,
+  editPost,
 } from "@/controllers/post.controller.js";
 import { getPostComments, submitComment } from "@/controllers/comment.controller.js";
 
@@ -18,6 +19,7 @@ postRoutes.post("", protectRoute, upload.array("files"), createPost);
 postRoutes.get("", getPosts);
 postRoutes.get("/search", searchPosts);
 postRoutes.get("/:postId", getPost);
+postRoutes.patch("/:postId", protectRoute, upload.array("files"), editPost);
 postRoutes.post("/:postId/react", protectRoute, togglePostReaction);
 // postRoutes.get("/:postId/likes", getPostLikes);
 postRoutes.post("/:postId/save", protectRoute, togglePostSave);

@@ -68,7 +68,11 @@ export default function CommentBody({ postId, commentId, parentId, setEditAction
             ) : null
           }
         >
-          <Avatar src={comment.commentor?.profilePicture} alt={comment.commentor?.fullname} sx={{ width: 45, height: 45 }} />
+          <Avatar
+            src={comment.commentor?.profilePicture?.displayUrl}
+            alt={comment.commentor?.fullname}
+            sx={{ width: 45, height: 45 }}
+          />
         </Badge>
       </MuiLink>
 

@@ -28,8 +28,14 @@ import { useUpdateProfileMutation } from "@/services/mutations/user.mutations";
 import type { AuthUser, UpdateUserFields } from "@/types";
 import { useEffect, useRef, useState } from "react";
 import { inputSx } from "@/utils";
+import CropDialog from "@/components/dialog/CropDialog";
+import type { Crop } from "react-image-crop";
+import { openAlert } from "@/redux/slices/alertSlice.ts";
+import { useDispatch } from "react-redux";
 
 export default function EditProfile() {
+  const dispatch = useDispatch();
+
   const queryClient = useQueryClient();
   const authUser = queryClient.getQueryData<AuthUser>(["authUser"])!;
 
@@ -42,17 +48,36 @@ export default function EditProfile() {
 
   const { mutateAsync: handleUpdate, isPending } = useUpdateProfileMutation({ setUploadProgress });
 
-  const { username, fullname, profilePicture, bio } = authUser;
-
-  const [userFields, setUserFields] = useState<UpdateUserFields>({ username, fullname, profilePicture, bio });
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [changed, setChanged] = useState(false);
+
+  const [userFields, setUserFields] = useState<UpdateUserFields>({
+    username: authUser.username,
+    fullname: authUser.fullname,
+    bio: authUser.bio,
+    removeProfilePicture: false,
+  });
+
+  const [newProfilePicture, setNewProfilePicture] = useState<{ url: string; file: File } | null>(null);
+  const [tempImageFile, setTempImageFile] = useState<File | null>(null);
+  const [tempImageUrl, setTempImageUrl] = useState<string | null>(null);
+  const [isCropDialogOpen, setIsCropDialogOpen] = useState(false);
   const profilePictureRef = useRef<HTMLInputElement>(null);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
-  useEffect(() => () => URL.revokeObjectURL(userFields.profilePicture), [userFields.profilePicture]);
+  useEffect(
+    () => () => {
+      if (newProfilePicture) {
+        URL.revokeObjectURL(newProfilePicture.url);
+      }
+      if (tempImageUrl) {
+        URL.revokeObjectURL(tempImageUrl);
+      }
+    },
+    [newProfilePicture, tempImageUrl]
+  );
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     setUserFields({
@@ -68,16 +93,50 @@ export default function EditProfile() {
   }
 
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const pfp = e.target.files?.[0];
-    if (!pfp) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    setUserFields(prev => ({ ...prev, profilePicture: URL.createObjectURL(pfp) }));
+    if (file.type === "image/gif") {
+      setNewProfilePicture({ url: URL.createObjectURL(file), file });
+      setUserFields(prev => ({ ...prev, removeProfilePicture: false }));
+      setChanged(true);
+      return;
+    }
+    setTempImageFile(file);
+    const tempUrl = URL.createObjectURL(file);
+    setTempImageUrl(tempUrl);
+
+    setIsCropDialogOpen(true);
+
     e.target.value = "";
+  }
+
+  function handleCropDone(newUrl: string, _crop: Crop, newFile: File) {
+    setNewProfilePicture({ url: newUrl, file: newFile });
+    setUserFields(prev => ({ ...prev, removeProfilePicture: false }));
     setChanged(true);
+
+    if (tempImageUrl) {
+      URL.revokeObjectURL(tempImageUrl);
+      setTempImageUrl(null);
+    }
+    setTempImageFile(null);
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    if (!authUser?.verified.profile && newProfilePicture?.file.type === "image/gif") {
+      dispatch(
+        openAlert({
+          title: "Not Allowed",
+          message: "Only verified users are allowed to use animated profile pictures",
+          confirmButtonText: "ok",
+        })
+      );
+      return;
+    }
+
     try {
       if (!userFields.fullname || !userFields.username) {
         throw new Error("Full name and username are required");
@@ -88,14 +147,10 @@ export default function EditProfile() {
       }
 
       const formData = new FormData();
-      const newProfilePicture =
-        !userFields.profilePicture || userFields.profilePicture === authUser.profilePicture
-          ? null
-          : await fetch(userFields.profilePicture).then(res => res.blob());
 
       formData.append("userFields", JSON.stringify(userFields));
-      if (newProfilePicture) {
-        formData.append("profilePicture", newProfilePicture);
+      if (!userFields.removeProfilePicture && newProfilePicture) {
+        formData.append("profilePicture", newProfilePicture.file);
       }
 
       await handleUpdate({ formData });
@@ -142,7 +197,7 @@ export default function EditProfile() {
           <Box display="flex" flexDirection="column" gap={3}>
             <Box position="relative" mx="auto">
               <Avatar
-                src={userFields.profilePicture}
+                src={userFields.removeProfilePicture ? undefined : newProfilePicture?.url ?? authUser.profilePicture?.originalUrl}
                 alt={userFields.fullname}
                 onClick={() => profilePictureRef.current?.click()}
                 sx={{ width: 130, height: 130, border: "4px double grey", ":hover": { cursor: "pointer" } }}
@@ -171,9 +226,10 @@ export default function EditProfile() {
                   Change photo
                 </MenuItem>
                 <MenuItem
-                  disabled={!userFields.profilePicture || isPending}
+                  disabled={userFields.removeProfilePicture || isPending}
                   onClick={() => {
-                    setUserFields(prev => ({ ...prev, profilePicture: "" }));
+                    setUserFields(prev => ({ ...prev, removeProfilePicture: true }));
+                    setNewProfilePicture(null);
                     setChanged(true);
                     setAnchorEl(null);
                   }}
@@ -204,6 +260,7 @@ export default function EditProfile() {
                   onKeyDown: e => {
                     const start = e.currentTarget.selectionStart;
                     const end = e.currentTarget.selectionEnd;
+                    const { fullname } = userFields;
 
                     if (
                       e.key === " " &&
@@ -282,7 +339,7 @@ export default function EditProfile() {
                 {isPending ? (
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     Saving...
-                    {userFields.profilePicture && userFields.profilePicture !== authUser.profilePicture && (
+                    {newProfilePicture && (
                       <Box sx={{ position: "relative", display: "inline-flex" }}>
                         <CircularProgress variant="determinate" value={uploadProgress} />
                         <Box
@@ -314,6 +371,30 @@ export default function EditProfile() {
           </Box>
         </Box>
       </DialogContent>
+
+      {/* Crop Dialog for Profile Picture */}
+      {tempImageFile && tempImageUrl && (
+        <CropDialog
+          open={isCropDialogOpen}
+          onClose={() => {
+            setIsCropDialogOpen(false);
+            if (tempImageUrl) {
+              URL.revokeObjectURL(tempImageUrl);
+              setTempImageUrl(null);
+            }
+            setTempImageFile(null);
+          }}
+          fileContainer={{
+            isNew: true,
+            id: crypto.randomUUID(),
+            file: tempImageFile,
+            originalUrl: tempImageUrl,
+            url: tempImageUrl,
+          }}
+          onCropDone={handleCropDone}
+          square
+        />
+      )}
     </Dialog>
   );
 }

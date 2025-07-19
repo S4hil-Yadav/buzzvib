@@ -26,13 +26,14 @@ import dayjs from "@/lib/dayjs";
 import { useDispatch } from "react-redux";
 import { openAlert } from "@/redux/slices/alertSlice";
 import type { Session } from "@/types";
+import type { AppDispatch } from "@/redux/store.ts";
 
 export default function SessionsSection() {
   const { data: sessionData, isLoading, isError } = useGetAllSessionsQuery();
   const { mutate: logoutSession, isPending: isPendingLogoutSession } = useLogoutSessionMutation();
   const { mutate: logoutAllSessions, isPending: isPendingLogoutAll } = useLogoutAllSessionsMutation();
 
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
 
   const { currentSession, otherSessions } = sessionData ?? {};
 

@@ -4,9 +4,9 @@ import mongoose from "mongoose";
 import { ApiError, ErrorCode, handleControllerError } from "@/lib/error.js";
 import { enrichRawIds } from "@/utils/enrichRawIds.js";
 import type { Chatroom } from "types";
-import { buildChatroomEnrichmentStages, buildMessageEnrichmentStages } from "@/utils/aggregate.utils.js";
+import { buildChatroomEnrichmentStages, buildMessageEnrichmentStages } from "@/utils/aggregate.js";
 import ChatroomMemberModel from "@/models/chatroomMember.model.js";
-import { isValidReqBody } from "@/utils/typeGuard.utils.js";
+import { isValidReqBody } from "@/utils/typeGuard.js";
 import { CHATROOM_MESSAGES_PAGE_SIZE } from "@/config/constants.js";
 
 export async function getChatrooms(req: Request, res: Response, next: NextFunction) {

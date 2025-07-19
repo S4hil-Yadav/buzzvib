@@ -16,6 +16,7 @@ import { openAlert } from "@/redux/slices/alertSlice";
 import { useQueryClient } from "@tanstack/react-query";
 import type { FollowStatus, User, AuthUser } from "@/types";
 import { useBlockFollowMutation } from "@/services/mutations/follow.mutations";
+import type { AppDispatch } from "@/redux/store.ts";
 
 interface ProfileDropdownProps {
   user: User;
@@ -23,7 +24,7 @@ interface ProfileDropdownProps {
 }
 
 export default function ProfileDropdown({ user, followStatus }: ProfileDropdownProps) {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);

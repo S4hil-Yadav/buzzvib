@@ -42,6 +42,41 @@ const componentOverrides = {
       },
     },
   },
+  MuiAlert: {
+    styleOverrides: {
+      root: {
+        borderRadius: "12px",
+      },
+      standardError: ({ theme }: { theme: Theme }) => ({
+        backgroundColor: theme.palette.mode === "dark" ? "#2D1B1B" : "#FEF2F2",
+        color: theme.palette.mode === "dark" ? "#F87171" : "#B91C1C",
+        "& .MuiAlert-icon": {
+          color: theme.palette.mode === "dark" ? "#F87171" : "#EF4444",
+        },
+      }),
+      standardWarning: ({ theme }: { theme: Theme }) => ({
+        backgroundColor: theme.palette.mode === "dark" ? "#2D2416" : "#FFFBEB",
+        color: theme.palette.mode === "dark" ? "#FBBF24" : "#92400E",
+        "& .MuiAlert-icon": {
+          color: theme.palette.mode === "dark" ? "#FBBF24" : "#F59E0B",
+        },
+      }),
+      standardInfo: ({ theme }: { theme: Theme }) => ({
+        backgroundColor: theme.palette.mode === "dark" ? "#1E2A3A" : "#EFF6FF",
+        color: theme.palette.mode === "dark" ? "#60A5FA" : "#1E40AF",
+        "& .MuiAlert-icon": {
+          color: theme.palette.mode === "dark" ? "#60A5FA" : "#3B82F6",
+        },
+      }),
+      standardSuccess: ({ theme }: { theme: Theme }) => ({
+        backgroundColor: theme.palette.mode === "dark" ? "#1A2E1A" : "#F0FDF4",
+        color: theme.palette.mode === "dark" ? "#4ADE80" : "#166534",
+        "& .MuiAlert-icon": {
+          color: theme.palette.mode === "dark" ? "#4ADE80" : "#22C55E",
+        },
+      }),
+    },
+  },
   MuiCssBaseline: {
     styleOverrides: `
       @keyframes muiPing {

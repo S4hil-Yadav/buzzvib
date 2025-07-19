@@ -2,15 +2,12 @@ import { Worker } from "bullmq";
 import { connection } from "@/lib/redis.js";
 import FollowModel from "@/models/follow.model.js";
 import NotificationModel from "@/models/notification.model.js";
-import { connectDB } from "@/lib/db.js";
 import type { NotifyFollowersJobPayload, User } from "types";
 import { getWorkerLogger } from "@/loggers/worker.logger.js";
 import mongoose from "mongoose";
 import { BATCH_SIZE } from "@/config/constants.js";
 
 const { logInfo, logError } = getWorkerLogger("notify-followers");
-
-await connectDB({ logInfo, logError });
 
 const worker = new Worker<NotifyFollowersJobPayload>(
   "notifyFollowers",
@@ -20,50 +17,59 @@ const worker = new Worker<NotifyFollowersJobPayload>(
     const authorId = new mongoose.Types.ObjectId(rawAuthorId);
     const postId = new mongoose.Types.ObjectId(rawPostId);
 
-    const followersCursor = FollowModel.find({ following: authorId, status: "accepted" })
-      .select("-_id follower")
-      .populate({
-        path: "follower",
-        select: "_id",
-        match: { deletedAt: null },
-      })
-      .lean<{ follower: Pick<User, "_id"> | null }>()
-      .cursor();
+    logInfo(`Starting notification for post ${postId} by author ${authorId}`);
 
-    const batch: Pick<User, "_id">[] = [];
+    try {
+      const followersCursor = FollowModel.find({ following: authorId, status: "accepted" })
+        .select("-_id follower")
+        .populate({
+          path: "follower",
+          select: "_id",
+          match: { deletedAt: null },
+        })
+        .lean<{ follower: Pick<User, "_id"> | null }>()
+        .cursor();
 
-    async function pushNotifications() {
-      const notifications = batch.map(follower => ({
-        sender: authorId,
-        receiver: follower._id,
-        type: "newPost",
-        target: { post: postId, comment: null },
-      }));
+      const batch: Pick<User, "_id">[] = [];
 
-      await NotificationModel.insertMany(notifications);
-      batch.length = 0;
-    }
+      async function pushNotifications() {
+        const notifications = batch.map(follower => ({
+          sender: authorId,
+          receiver: follower._id,
+          type: "newPost",
+          target: { post: postId, comment: null },
+        }));
 
-    for await (const { follower } of followersCursor) {
-      if (follower) {
-        batch.push(follower);
+        await NotificationModel.insertMany(notifications);
+        batch.length = 0;
       }
-      if (batch.length === BATCH_SIZE) {
+
+      for await (const { follower } of followersCursor) {
+        if (follower) {
+          batch.push(follower);
+        }
+        if (batch.length === BATCH_SIZE) {
+          await pushNotifications();
+        }
+      }
+
+      if (batch.length) {
         await pushNotifications();
       }
-    }
 
-    if (batch.length) {
-      await pushNotifications();
+      logInfo(`Successfully completed notifications for post ${postId}`);
+    } catch (error) {
+      logError(`Error during notification for post ${postId}:`, error);
+      throw error;
     }
   },
-  { connection }
+  { connection, prefix: process.env.DB_PREFIX }
 );
 
 worker.on("completed", job => {
   logInfo(`Job ${job.id} completed`);
 });
 
-worker.on("failed", (job, err) => {
-  logError(`Job ${job?.id} failed: ${err}`);
+worker.on("failed", (job, error) => {
+  logError(`Job ${job?.id} failed:`, error);
 });

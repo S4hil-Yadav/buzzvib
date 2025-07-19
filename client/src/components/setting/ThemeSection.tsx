@@ -3,7 +3,7 @@ import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import { useDispatch, useSelector } from "react-redux";
 import { setTheme } from "@/redux/slices/themeSlice.ts";
-import { type RootState } from "@/redux/store.ts";
+import type { AppDispatch, RootState } from "@/redux/store.ts";
 
 interface ThemeSettingsProps {
   Section: React.FC<{ title: string; children: React.ReactNode }>;
@@ -23,7 +23,7 @@ interface ThemeToggleButtonsProps {
 }
 
 function ThemeToggleButtons({ value }: ThemeToggleButtonsProps) {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
 
   return (
     <Box borderRadius={2} sx={{ display: "flex", alignItems: "center" }}>

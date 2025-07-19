@@ -75,7 +75,10 @@ export default function AuthPage() {
     const urlParams = new URLSearchParams(location.search);
     const code = urlParams.get("code");
 
-    if (code) googleAuth({ code });
+    if (code) {
+      navigate("/auth");
+      googleAuth({ code });
+    }
   }, [googleAuth, location.search, navigate]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -104,9 +107,9 @@ export default function AuthPage() {
       } else {
         login({ userFields: { email, password } });
       }
-    } catch (err) {
-      if (err instanceof Error) {
-        toast.error(err.message);
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
       }
     }
   }
@@ -123,7 +126,7 @@ export default function AuthPage() {
         alignItems: "center",
         justifyContent: "center",
         bgcolor: "background.default",
-        px: { xs: 0, sm: 5 },
+        p: { xs: 0, sm: 5 },
       }}
     >
       <Container disableGutters maxWidth="sm">
@@ -341,7 +344,7 @@ export default function AuthPage() {
 
                 <Stack direction="row" justifyContent="center" spacing={1}>
                   <Tooltip title="Google" placement="left">
-                    <IconButton onClick={() => googleLogin()}>
+                    <IconButton onClick={() => googleLogin()} disabled={isPending || isSuccess}>
                       <GoogleIcon size={35} />
                     </IconButton>
                   </Tooltip>
@@ -365,12 +368,14 @@ export default function AuthPage() {
                   {authType === "signup" ? "Already have an account?" : "Don't have an account?"}
                   <Button
                     disableTouchRipple
+                    disabled={isPending || isSuccess}
                     onClick={() => setAuthType(prev => (prev === "login" ? "signup" : "login"))}
                     sx={{
                       textTransform: "capitalize",
                       fontWeight: 300,
                       color: "primary.dark",
                       ":hover": { opacity: 0.5, bgcolor: "transparent" },
+                      ":disabled": { color: "primary.dark" },
                     }}
                   >
                     {authType === "signup" ? "login" : "signup"}

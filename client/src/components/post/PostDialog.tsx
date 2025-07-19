@@ -12,7 +12,7 @@ import {
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useCallback, useEffect, useState } from "react";
 import { InfiniteData, useQueryClient } from "@tanstack/react-query";
-import CloseIcon from "@mui/icons-material/Close";
+import { Close as CloseIcon } from "@mui/icons-material";
 import PostCard from "./PostCard";
 import CommentSection from "@/components/comment/CommentSection";
 import type { Comment, CommentIdPage } from "@/types";

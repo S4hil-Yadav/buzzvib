@@ -143,9 +143,9 @@ export function buildUserFieldEnrichmentStage(
   reqUser: Request["user"],
   userField: string,
   resultField = userField,
-  options?: { filterPrivateAccounts?: boolean; filterReqUser?: boolean; preserveNullUsers?: boolean }
+  options?: { filterPrivateAccounts?: boolean; preserveNullUsers?: boolean }
 ) {
-  const { filterPrivateAccounts = false, filterReqUser = false, preserveNullUsers = false } = options ?? {};
+  const { filterPrivateAccounts = false, preserveNullUsers = false } = options ?? {};
 
   return [
     {
@@ -153,17 +153,7 @@ export function buildUserFieldEnrichmentStage(
         from: "users",
         let: { userId: `$${userField}` },
         pipeline: [
-          {
-            $match: {
-              $expr: {
-                $and: [
-                  { $eq: ["$_id", "$$userId"] },
-                  { $eq: ["$deletedAt", null] },
-                  ...(filterReqUser && reqUser ? [{ $ne: ["$_id", reqUser._id] }] : []),
-                ],
-              },
-            },
-          },
+          { $match: { $expr: { $and: [{ $eq: ["$_id", "$$userId"] }, { $eq: ["$deletedAt", null] }] } } },
           ...buildUserEnrichmentStages(reqUser, { filterPrivateAccounts }),
         ],
         as: resultField,
@@ -235,7 +225,6 @@ export function buildPostEnrichmentStages(
     addReactionStage?: boolean;
     addPostSaveStatusStage?: boolean;
     filterPrivateAccounts?: boolean;
-    filterReqUser?: boolean;
     preserveNullUsers?: boolean;
   }
 ) {
@@ -245,13 +234,12 @@ export function buildPostEnrichmentStages(
     addReactionStage = true,
     addPostSaveStatusStage = true,
     filterPrivateAccounts = true,
-    filterReqUser = false,
     preserveNullUsers = false,
   } = options ?? {};
   return [
     ...(filterBlockStage ? buildFilterBlockStage(reqUser, "author") : []),
     ...(enrichUserStage
-      ? buildUserFieldEnrichmentStage(reqUser, "author", "author", { filterPrivateAccounts, preserveNullUsers, filterReqUser })
+      ? buildUserFieldEnrichmentStage(reqUser, "author", "author", { filterPrivateAccounts, preserveNullUsers })
       : []),
     ...(addReactionStage ? buildAddReactionStage(reqUser, "_id") : []),
     ...(addPostSaveStatusStage ? buildAddPostSaveStatusStage(reqUser, "_id") : []),
@@ -266,9 +254,10 @@ export function buildPostEnrichmentStages(
         count: 1,
         reaction: 1,
         savedAt: 1,
-        createdAt: 1,
+        status: 1,
         updatedAt: 1,
         deletedAt: 1,
+        createdAt: 1,
       },
     },
   ];
@@ -306,10 +295,22 @@ export function buildPostFieldEnrichmentStage(
         from: "posts",
         let: { postId: `$${postField}` },
         pipeline: [
-          { $match: { $expr: { $and: [{ $eq: ["$_id", "$$postId"] }, { $eq: ["$deletedAt", null] }] } } },
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  { $eq: ["$_id", "$$postId"] },
+                  { $eq: ["$deletedAt", null] },
+                  ...(filterReqUser && reqUser ? [{ author: { $ne: reqUser._id } }] : []),
+                  ...(reqUser
+                    ? [{ $or: [{ $eq: ["$status", "published"] }, { $eq: ["$author", reqUser._id] }] }]
+                    : [{ $eq: ["$status", "published"] }]),
+                ],
+              },
+            },
+          },
           ...buildPostEnrichmentStages(reqUser, {
             enrichUserStage,
-            filterReqUser,
             preserveNullUsers,
             filterBlockStage,
             addReactionStage,
@@ -348,11 +349,7 @@ export function buildCommentEnrichmentStages(
   return [
     ...(filterBlockStage ? buildFilterBlockStage(reqUser, "commentor") : []),
     ...(enrichUserStage
-      ? buildUserFieldEnrichmentStage(reqUser, "commentor", "commentor", {
-          filterPrivateAccounts,
-          filterReqUser,
-          preserveNullUsers,
-        })
+      ? buildUserFieldEnrichmentStage(reqUser, "commentor", "commentor", { filterPrivateAccounts, preserveNullUsers })
       : []),
     ...(addReactionStage ? buildAddReactionStage(reqUser, "_id") : []),
     {

@@ -65,7 +65,7 @@ export default function NotificationCard({ notification }: NotificationCardProps
           underline="none"
         >
           <Avatar
-            src={notification.sender?.profilePicture}
+            src={notification.sender?.profilePicture?.displayUrl}
             alt={notification.sender?.fullname}
             sx={{ width: 50, height: 50, cursor: "pointer" }}
           />

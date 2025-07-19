@@ -4,13 +4,16 @@ export interface User {
   _id: mongoose.Types.ObjectId;
   username: string;
   fullname: string;
-  profilePicture: string;
+  profilePicture: {
+    originalUrl: string;
+    displayUrl: string;
+  } | null;
   verified: { profile: boolean };
   [k: string & {}]: any;
 }
 
 export interface ProfileUser extends User {
-  bio: string;
+  bio: string | null;
   privacy: {
     showLikes: boolean;
     account: { visibility: "public" | "private" };

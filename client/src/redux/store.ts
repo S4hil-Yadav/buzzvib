@@ -1,15 +1,17 @@
-import { combineReducers, configureStore } from "@reduxjs/toolkit";
+import { Action, combineReducers, configureStore } from "@reduxjs/toolkit";
 import { persistReducer, persistStore } from "redux-persist";
 import storage from "redux-persist/lib/storage";
-import postDraftReducer from "@/redux/slices/postDraftSlice";
-import alertReducer from "@/redux/slices/alertSlice";
 import themeReducer from "@/redux/slices/themeSlice";
+import postDraftReducer from "@/redux/slices/postDraftSlice";
+import editPostReducer from "@/redux/slices/editPostSlice";
+import alertReducer from "@/redux/slices/alertSlice";
+import preferenceReducer from "@/redux/slices/preferenceSlice";
 
 const persistConfig = {
   key: "root",
   storage,
   version: 1,
-  blacklist: ["alert"],
+  whitelist: ["theme", "postDraft"],
 };
 
 const postDraftConfig = {
@@ -18,11 +20,21 @@ const postDraftConfig = {
   whitelist: ["postDraft"],
 };
 
-const rootReducer = combineReducers({
+const appReducer = combineReducers({
   theme: themeReducer,
   alert: alertReducer,
+  editPost: editPostReducer,
   postDraft: persistReducer(postDraftConfig, postDraftReducer),
+  preference: preferenceReducer,
 });
+
+const rootReducer = (state: ReturnType<typeof appReducer> | undefined, action: Action) => {
+  if (action.type === "RESET_STORE") {
+    storage.removeItem("persist:root");
+    return appReducer(undefined, action);
+  }
+  return appReducer(state, action);
+};
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
 

@@ -28,15 +28,12 @@ const alertSlice = createSlice({
       disabled: false,
       ...action.payload,
     }),
-    setDisabled: (state, action: PayloadAction<boolean>) => {
-      state.disabled = action.payload;
-    },
     closeAlert: state => ({ ...state, isOpen: false, disabled: true }),
-    resetAlert: () => ({ ...initialState }),
+    resetAlert: () => initialState,
   },
 });
 
-export const { openAlert, setDisabled, closeAlert, resetAlert } = alertSlice.actions;
+export const { openAlert, closeAlert, resetAlert } = alertSlice.actions;
 
 const alertReducer = alertSlice.reducer;
 export default alertReducer;

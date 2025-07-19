@@ -1,6 +1,5 @@
-import { logApiError } from "@/loggers/api.logger.js";
-import { fillTemplate, sendEmail } from "@/utils/email.utils.js";
-import getRequestMeta from "@/utils/requestMeta.utils.js";
+import { fillTemplate, sendEmail } from "@/utils/email.js";
+import getRequestMeta from "@/utils/requestMeta.js";
 import type { Request } from "express";
 import fs from "fs";
 import path from "path";
@@ -8,10 +7,11 @@ import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const templatesPath = [__dirname, "..", "templates"];
 
 export async function sendWelcomeEmail(email: string, fullname: string) {
   try {
-    const templatePath = path.join(__dirname, "..", "templates", "welcome-email.html");
+    const templatePath = path.join(...templatesPath, "welcome-email.html");
     const template = fs.readFileSync(templatePath, "utf8");
 
     const html = fillTemplate(template, { USER_NAME: fullname, GET_STARTED_URL: process.env.CLIENT_URL });
@@ -22,15 +22,15 @@ export async function sendWelcomeEmail(email: string, fullname: string) {
       text: `Hi ${fullname}, welcome to BuzzVib!`,
       html,
     });
-  } catch (err) {
-    logApiError("Failed to send welcome email:", err);
+  } catch (error) {
+    logApiError("Failed to send welcome email:", error);
   }
 }
 
 export async function sendPasswordResetEmail(email: string, resetSecret: string) {
   try {
     const resetUrl = `${process.env.CLIENT_URL}/reset-password?secret=${resetSecret}`;
-    const templatePath = path.join(__dirname, "..", "templates", "reset-password.html");
+    const templatePath = path.join(...templatesPath, "reset-password.html");
     const template = fs.readFileSync(templatePath, "utf8");
 
     const html = fillTemplate(template, { RESET_URL: resetUrl });
@@ -41,14 +41,14 @@ export async function sendPasswordResetEmail(email: string, resetSecret: string)
       text: `Reset your password using this link: ${resetUrl}`,
       html,
     });
-  } catch (err) {
-    logApiError("Failed to send password reset email:", err);
+  } catch (error) {
+    logApiError("Failed to send password reset email:", error);
   }
 }
 
 export async function sendAccountNotFoundEmail(email: string) {
   try {
-    const templatePath = path.join(__dirname, "..", "templates", "account-not-found.html");
+    const templatePath = path.join(...templatesPath, "account-not-found.html");
     const template = fs.readFileSync(templatePath, "utf8");
 
     const html = fillTemplate(template);
@@ -59,13 +59,13 @@ export async function sendAccountNotFoundEmail(email: string) {
       text: "We couldn't find an account with this email. Please check and try again.",
       html,
     });
-  } catch (err) {
-    logApiError("Failed to send account not found email:", err);
+  } catch (error) {
+    logApiError("Failed to send account not found email:", error);
   }
 }
 
 export async function sendEmailVerificationEmail(email: string, otp: string) {
-  const templatePath = path.join(__dirname, "..", "templates", "verify-email-otp.html");
+  const templatePath = path.join(...templatesPath, "verify-email-otp.html");
   const template = fs.readFileSync(templatePath, "utf8");
 
   const html = fillTemplate(template, { OTP_CODE: otp });
@@ -77,8 +77,8 @@ export async function sendEmailVerificationEmail(email: string, otp: string) {
       text: `Your OTP is: ${otp}. It will expire in 15 minutes.`,
       html,
     });
-  } catch (err) {
-    logApiError("Failed to send email verification email:", err);
+  } catch (error) {
+    logApiError("Failed to send email verification email:", error);
   }
 }
 
@@ -93,7 +93,7 @@ export async function sendLoginAlertEmail(email: string, req: Request) {
   });
 
   const resetUrl = `${process.env.CLIENT_URL}/reset-password`;
-  const templatePath = path.join(__dirname, "..", "templates", "login-alert.html");
+  const templatePath = path.join(...templatesPath, "login-alert.html");
   const template = fs.readFileSync(templatePath, "utf8");
 
   const html = fillTemplate(template, {
@@ -123,7 +123,7 @@ export async function sendPasswordChangeAlertEmail(email: string, req: Request) 
   });
 
   const resetUrl = `${process.env.CLIENT_URL}/reset-password`;
-  const templatePath = path.join(__dirname, "..", "templates", "password-change-alert.html");
+  const templatePath = path.join(...templatesPath, "password-change-alert.html");
   const template = fs.readFileSync(templatePath, "utf8");
 
   const html = fillTemplate(template, {
@@ -140,4 +140,22 @@ export async function sendPasswordChangeAlertEmail(email: string, req: Request) 
     text: `Your password was changed from ${device} in ${location} at ${changeTime}. If this wasn't you, reset your password immediately here: ${resetUrl}`,
     html,
   });
+}
+
+export async function sendAccountDeletionEmail(email: string, fullname: string) {
+  try {
+    const templatePath = path.join(...templatesPath, "account-deleted.html");
+    const template = fs.readFileSync(templatePath, "utf8");
+
+    const html = fillTemplate(template, { USER_NAME: fullname, SIGNUP_URL: `${process.env.CLIENT_URL}/auth` });
+
+    await sendEmail({
+      to: email,
+      subject: "We're Sad to See You Go - Account Deleted",
+      text: `Hi ${fullname}, your BuzzVib account has been successfully deleted. We're sad to see you go, but you're always welcome back anytime!`,
+      html,
+    });
+  } catch (error) {
+    logApiError("Failed to send account deletion email:", error);
+  }
 }

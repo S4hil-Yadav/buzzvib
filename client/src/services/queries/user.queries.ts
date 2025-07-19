@@ -95,7 +95,6 @@ export function useGetFollowingQuery(user: User) {
 
 export function useGetUserPostIdsQuery(username: User["username"]) {
   const queryClient = useQueryClient();
-  const authUser = queryClient.getQueryData<AuthUser>(["authUser"]);
 
   return useInfiniteQuery<PostIdPage, Error, Post["_id"][], ["user", User["username"], "posts"], PostIdPage["nextPageParam"]>({
     queryKey: ["user", username, "posts"],
@@ -114,8 +113,6 @@ export function useGetUserPostIdsQuery(username: User["username"]) {
     getNextPageParam: lastPage => lastPage.nextPageParam,
 
     select: ({ pages }) => pages.flatMap(({ postIds }) => postIds),
-
-    ...(authUser?.username === username ? { staleTime: 0 } : {}),
   });
 }
 

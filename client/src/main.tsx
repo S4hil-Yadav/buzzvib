@@ -10,7 +10,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SocketProvider } from "@/context/SocketProvider";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { GoogleOAuthProvider } from "@react-oauth/google";
-import ThemeWrapper from "@/wrappers/ThemeWrapper.tsx";
+import ThemeWrapper from "@/wrappers/ThemeWrapper";
 
 import "@fontsource/roboto/300.css";
 import "@fontsource/roboto/400.css";
@@ -18,9 +18,10 @@ import "@fontsource/roboto/500.css";
 import "@fontsource/roboto/700.css";
 
 import CssBaseline from "@mui/material/CssBaseline";
-import AlertDialog from "@/components/alert/AlertDialog";
+import GlobalDialogues from "@/components/dialog/GlobalDialogues";
 import axios from "axios";
-import ToastProvider from "@/wrappers/ToastProvider.tsx";
+import ToastProvider from "@/wrappers/ToastProvider";
+import GlobalSocketListeners from "@/lib/listeners/GlobalSocketListeners";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,8 +29,8 @@ const queryClient = new QueryClient({
       staleTime: 2 * 60 * 1000,
       gcTime: 2 * 60 * 1000,
       refetchOnWindowFocus: false,
-      retry: (failureCount, err) => {
-        if (axios.isAxiosError(err) && err.response?.status === 500) {
+      retry: (failureCount, error) => {
+        if (axios.isAxiosError(error) && error.response?.status === 500) {
           return failureCount < 3;
         }
         return false;
@@ -48,9 +49,10 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           <PersistGate persistor={persistor}>
             <Provider store={store}>
               <ThemeWrapper>
+                <GlobalSocketListeners />
                 <CssBaseline />
                 <ToastProvider />
-                <AlertDialog />
+                <GlobalDialogues />
                 <App />
               </ThemeWrapper>
             </Provider>

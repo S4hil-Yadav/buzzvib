@@ -5,13 +5,12 @@ import { ApiError, ErrorCode, handleControllerError } from "@/lib/error.js";
 import type { NextFunction, Request, Response } from "express";
 import type { AuthUser, GoogleUser, Session, Tokens, User, VerificationToken } from "types";
 import axios from "axios";
-import { generateRandomPassword, generateUniqueUsername, uploadImageFromUrl } from "@/utils/auth.utils.js";
+import { generateRandomPassword, generateUniqueUsername, uploadImageFromUrl } from "@/utils/auth.js";
 import crypto from "crypto";
 import VerificationTokenModel from "@/models/verificationToken.model.js";
-import { logApiError } from "@/loggers/api.logger.js";
 import SessionModel from "@/models/session.model.js";
 import mongoose from "mongoose";
-import { isValidLoginUserFields, isValidReqBody, isValidSignupUserFields } from "@/utils/typeGuard.utils.js";
+import { isValidLoginUserFields, isValidReqBody, isValidSignupUserFields } from "@/utils/typeGuard.js";
 import {
   sendAccountNotFoundEmail,
   sendLoginAlertEmail,
@@ -19,12 +18,12 @@ import {
   sendPasswordResetEmail,
   sendWelcomeEmail,
 } from "@/services/email.service.js";
-import { withTransaction } from "@/utils/db.utils.js";
+import { withTransaction } from "@/utils/db.js";
 import { BCRYPT_SALT_ROUNDS } from "@/config/constants.js";
 
 export async function getAuthUser(req: Request, res: Response<AuthUser>, next: NextFunction) {
   try {
-    const authUser = await UserModel.findById(req.user!._id).lean<AuthUser>();
+    const authUser = await UserModel.findOne({ _id: req.user!._id, deletedAt: null }).lean<AuthUser>();
     if (!authUser) {
       throw new ApiError(404, { message: "User not found", code: ErrorCode.USER_NOT_FOUND });
     }
@@ -59,18 +58,20 @@ export async function signup(req: Request, res: Response<Tokens>, next: NextFunc
     } else if (username.length > 20) {
       throw new ApiError(422, { message: "Maximum username length is 20", code: ErrorCode.INVALID_INPUT });
     } else if (password.length < 6) {
-      throw new ApiError(422, { message: "Minimun password length is 6", code: ErrorCode.INVALID_INPUT });
+      throw new ApiError(422, { message: "Minimum password length is 6", code: ErrorCode.INVALID_INPUT });
     } else if (password.length > 30) {
       throw new ApiError(422, { message: "Maximum password length is 30", code: ErrorCode.INVALID_INPUT });
     } else if (fullname.split(" ").length > 5 || fullname.length > 30) {
       throw new ApiError(422, { message: "Only 5 words and max length 30 is allowed", code: ErrorCode.INVALID_INPUT });
     }
 
-    const [existingEmail, existingUsername] = await Promise.all([UserModel.exists({ email }), UserModel.exists({ username })]);
+    const existingUser = await UserModel.findOne({ $and: [{ $or: [{ email }, { username }] }, { deletedAt: null }] })
+      .select("-_id email username")
+      .lean<Pick<AuthUser, "email" | "username">>();
 
-    if (existingEmail) {
+    if (existingUser?.email === email) {
       throw new ApiError(409, { message: "Email already exists", code: ErrorCode.EMAIL_ALREADY_EXISTS });
-    } else if (existingUsername) {
+    } else if (existingUser?.username === username) {
       throw new ApiError(409, { message: "Username already exists", code: ErrorCode.USERNAME_ALREADY_EXISTS });
     }
 
@@ -81,7 +82,7 @@ export async function signup(req: Request, res: Response<Tokens>, next: NextFunc
 
     const tokens = await generateTokens(req, res, newUser._id);
 
-    res.status(200).json(tokens);
+    res.status(201).json(tokens);
 
     sendWelcomeEmail(email, fullname).catch(error => logApiError("Failed to send welcome email:", error));
   } catch (error) {
@@ -108,7 +109,7 @@ export async function login(req: Request, res: Response<Tokens>, next: NextFunct
       throw new ApiError(400, { message: "All fields are required", code: ErrorCode.MISSING_REQUIRED_FIELDS });
     }
 
-    const user = await UserModel.findOne({ email: email.trim() })
+    const user = await UserModel.findOne({ email: email.trim(), deletedAt: null })
       .select("password")
       .lean<{ _id: AuthUser["_id"]; password: string }>();
 
@@ -149,9 +150,16 @@ export async function googleOAuth(req: Request, res: Response<Tokens>, next: Nex
       headers: { Authorization: `Bearer ${tokenRes.access_token}` },
     });
 
-    const { email, name: fullname, picture } = googleUser;
+    const { email, name: fullname = "New User", picture } = googleUser;
 
-    const existing = await UserModel.findOneAndUpdate({ email }, { $set: { "verified.email": true } })
+    if (!email) {
+      throw new ApiError(422, {
+        message: "Google account does not have a public email",
+        code: ErrorCode.MISSING_REQUIRED_FIELDS,
+      });
+    }
+
+    const existing = await UserModel.findOneAndUpdate({ email, deletedAt: null }, { $set: { "verified.email": true } })
       .select("_id")
       .lean<Pick<AuthUser, "_id">>();
 
@@ -160,13 +168,27 @@ export async function googleOAuth(req: Request, res: Response<Tokens>, next: Nex
       (await (async () => {
         const username = await generateUniqueUsername(fullname);
         const hashedPassword = await bcrypt.hash(generateRandomPassword(), await bcrypt.genSalt(BCRYPT_SALT_ROUNDS));
-        const newUser = await UserModel.create({ email, fullname, username, password: hashedPassword, "verified.email": true });
+        const newUser = new UserModel({ email, fullname, username, password: hashedPassword, "verified.email": true });
 
         try {
-          const uploadRes = await uploadImageFromUrl(picture, {
-            folder: `buzzvib/users/${newUser._id}/profile-picture`,
-          });
-          await newUser.updateOne({ $set: { profilePicture: uploadRes.secure_url } });
+          const uploadRes = picture
+            ? await uploadImageFromUrl(picture, {
+                folder: `buzzvib/users/${newUser._id}/profile-picture`,
+                resource_type: "image",
+                quality: "auto:good",
+                crop: "fill",
+                width: 800,
+                height: 800,
+                format: "jpg",
+                eager: [{ crop: "fill", gravity: "face", quality: "auto:good", width: 150, height: 150, format: "jpg" }],
+              })
+            : null;
+
+          if (uploadRes) {
+            newUser.profilePicture = { originalUrl: uploadRes.secure_url, displayUrl: uploadRes.eager[0].secure_url };
+          }
+
+          await newUser.save();
         } catch (error) {
           logApiError(`Error uploading image in googleOAuth controller: ${error}`);
         }

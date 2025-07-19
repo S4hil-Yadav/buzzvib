@@ -1,6 +1,5 @@
 import React from "react";
 import { Box, Typography, Divider, Paper } from "@mui/material";
-// import { Delete as DeleteIcon } from "@mui/icons-material";
 import PrivacySection from "@/components/setting/PrivacySection";
 import ThemeSection from "@/components/setting/ThemeSection";
 import EmailSection from "@/components/setting/EmailSection";
@@ -11,6 +10,7 @@ import FollowingRequestsDialog from "@/components/setting/FollowingRequestsDialo
 import BlockedUsersDialog from "@/components/setting/BlockedUsersDialog";
 import SessionsSection from "@/components/setting/SessionsSection";
 import ActivitySection from "@/components/setting/ActivitySection";
+import DangerSection from "@/components/setting/DangerSection.tsx";
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <Paper
@@ -69,16 +69,6 @@ export default function SettingsPage() {
 
       <PrivacySection Section={Section} />
 
-      {/* Notification Settings */}
-      {/* <Section title="Notifications">
-        <FormGroup>
-          <FormControlLabel control={<Switch color="primary" defaultChecked />} label="Likes" />
-          <FormControlLabel control={<Switch color="primary" defaultChecked />} label="Comments" />
-          <FormControlLabel control={<Switch color="primary" defaultChecked />} label="New Followers" />
-          <FormControlLabel control={<Switch color="primary" />} label="Direct Messages" />
-        </FormGroup>
-      </Section> */}
-
       {/* Following Requests */}
       <Section title="Following Requests">
         <FollowingRequestsDialog />
@@ -95,20 +85,9 @@ export default function SettingsPage() {
       </Section>
 
       {/* Danger Zone */}
-      {/* <Section title="Danger Zone">
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={2} justifyContent="center">
-          <Box sx={{ flex: 1 }}>
-            <Button variant="outlined" color="warning" fullWidth>
-              Deactivate Account
-            </Button>
-          </Box>
-          <Box sx={{ flex: 1 }}>
-            <Button variant="contained" color="error" startIcon={<DeleteIcon />} fullWidth>
-              Delete Account
-            </Button>
-          </Box>
-        </Stack>
-      </Section> */}
+      <Section title="Danger Zone">
+        <DangerSection />
+      </Section>
     </Box>
   );
 }

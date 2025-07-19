@@ -1,6 +1,6 @@
 import { handleControllerError } from "@/lib/error.js";
 import type { Notification, NotificationPage } from "types";
-import { buildUserFieldEnrichmentStage } from "@/utils/aggregate.utils.js";
+import { buildUserFieldEnrichmentStage } from "@/utils/aggregate.js";
 import NotificationModel from "@/models/notification.model.js";
 import { NextFunction, Request, Response } from "express";
 import mongoose from "mongoose";

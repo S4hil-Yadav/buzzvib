@@ -114,9 +114,9 @@ export function useCreateFollowMutation() {
         }
       },
 
-      onError: async (err, { following }) => {
-        if (axios.isAxiosError(err)) {
-          toast.error(err.response?.data.message ?? "Something went wrong");
+      onError: async (error, { following }) => {
+        if (axios.isAxiosError(error)) {
+          toast.error(error.response?.data.message ?? "Something went wrong");
         }
 
         if (!authUser) return;
@@ -189,9 +189,9 @@ export function useRemoveFollowMutation() {
       }
     },
 
-    onError: async (err, { following }) => {
-      if (axios.isAxiosError(err)) {
-        toast.error(err.response?.data.message ?? "Something went wrong");
+    onError: async (error, { following }) => {
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data.message ?? "Something went wrong");
       }
 
       if (!authUser) {
@@ -301,9 +301,9 @@ export function useBlockFollowMutation() {
       }
     },
 
-    onError: async (err, { user }) => {
-      if (axios.isAxiosError(err)) {
-        toast.error(err.response?.data.message ?? "Something went wrong");
+    onError: async (error, { user }) => {
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data.message ?? "Something went wrong");
       }
 
       if (!authUser) return;
@@ -352,9 +352,9 @@ export function useUnblockFollowMutation() {
       queryClient.invalidateQueries({ queryKey: ["user", unblockedUser.username] });
     },
 
-    onError: async (err, { user }) => {
-      if (axios.isAxiosError(err)) {
-        toast.error(err.response?.data.message ?? "Something went wrong");
+    onError: async (error, { user }) => {
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data.message ?? "Something went wrong");
       }
 
       if (!authUser) return;
@@ -412,9 +412,9 @@ export function useRemoveFollowerMutation() {
       );
     },
 
-    onError: async (err, { follower }) => {
-      if (axios.isAxiosError(err)) {
-        toast.error(err.response?.data.message ?? "Something went wrong");
+    onError: async (error, { follower }) => {
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data.message ?? "Something went wrong");
       }
 
       if (!authUser) return;
@@ -522,9 +522,9 @@ export function useAcceptFollowRequestMutation() {
       );
     },
 
-    onError: async (err, { follower }) => {
-      if (axios.isAxiosError(err)) {
-        toast.error(err.response?.data.message ?? "Something went wrong");
+    onError: async (error, { follower }) => {
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data.message ?? "Something went wrong");
       }
 
       if (!authUser) {
@@ -571,9 +571,9 @@ export function useRejectFollowRequestMutation() {
       );
     },
 
-    onError: async (err, { follower }) => {
-      if (axios.isAxiosError(err)) {
-        toast.error(err.response?.data.message ?? "Something went wrong");
+    onError: async (error, { follower }) => {
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data.message ?? "Something went wrong");
       }
 
       if (!authUser) return;

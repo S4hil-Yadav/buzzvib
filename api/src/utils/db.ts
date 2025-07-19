@@ -9,14 +9,14 @@ export async function withTransaction<T>(run: (session: mongoose.ClientSession) 
       const result = await run(session);
       await session.commitTransaction();
       return result;
-    } catch (err) {
+    } catch (error) {
       await session.abortTransaction();
-      if (isTransientTransactionError(err) && attempt < maxRetries) {
+      if (isTransientTransactionError(error) && attempt < maxRetries) {
         // console.warn(`Transaction transient error, retrying attempt ${attempt}...`);
         await delay(100 * attempt);
         continue;
       }
-      throw err;
+      throw error;
     } finally {
       session.endSession();
     }
@@ -28,8 +28,8 @@ export async function withTransaction<T>(run: (session: mongoose.ClientSession) 
   });
 }
 
-function isTransientTransactionError(err: any) {
-  return err?.errorLabels?.includes("TransientTransactionError");
+function isTransientTransactionError(error: any) {
+  return error?.errorLabels?.includes("TransientTransactionError");
 }
 
 function delay(ms: number) {

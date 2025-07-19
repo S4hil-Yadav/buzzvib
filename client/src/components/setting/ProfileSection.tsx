@@ -32,7 +32,7 @@ export default function ProfileSection() {
         },
       }}
     >
-      <Avatar src={authUser.profilePicture} alt={authUser.fullname} sx={{ width: 48, height: 48 }} />
+      <Avatar src={authUser.profilePicture?.originalUrl} alt={authUser.fullname} sx={{ width: 48, height: 48 }} />
       <Box>
         <Typography variant="subtitle1" fontWeight={600}>
           {authUser.fullname}

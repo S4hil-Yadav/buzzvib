@@ -1,12 +1,12 @@
 import { closeAlert, resetAlert } from "@/redux/slices/alertSlice";
-import { RootState } from "@/redux/store";
+import type { RootState, AppDispatch } from "@/redux/store";
 import { Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
 
 const redBgColorTextSet = new Set(["remove", "unfollow", "delete", "logout", "withdraw", "block", "revoke"]);
 
 export default function AlertDialog() {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const { isOpen, title, confirmButtonText, message, disabled, onConfirm } = useSelector((state: RootState) => state.alert);
 
   const redBgColor = redBgColorTextSet.has(confirmButtonText);
@@ -53,24 +53,26 @@ export default function AlertDialog() {
           pb: 2,
         }}
       >
-        <Button
-          variant="outlined"
-          color="inherit"
-          onClick={() => dispatch(closeAlert())}
-          sx={{
-            textTransform: "capitalize",
-            border: "1px solid lightgrey",
-            fontWeight: 500,
-            width: 100,
-            fontSize: 17,
-            py: 0.5,
-            "&:hover": {
-              color: "grey.500",
-            },
-          }}
-        >
-          Cancel
-        </Button>
+        {!!onConfirm && (
+          <Button
+            variant="outlined"
+            color="inherit"
+            onClick={() => dispatch(closeAlert())}
+            sx={{
+              textTransform: "capitalize",
+              border: "1px solid lightgrey",
+              fontWeight: 500,
+              width: 100,
+              fontSize: 17,
+              py: 0.5,
+              "&:hover": {
+                color: "grey.500",
+              },
+            }}
+          >
+            Cancel
+          </Button>
+        )}
         <Button
           variant="contained"
           disabled={disabled}

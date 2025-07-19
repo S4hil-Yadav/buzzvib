@@ -46,9 +46,9 @@ export default function EmailSection() {
       }
 
       updateEmail({ email: newEmail });
-    } catch (err) {
-      if (err instanceof Error) {
-        toast.error(err.message);
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
       }
     }
   }

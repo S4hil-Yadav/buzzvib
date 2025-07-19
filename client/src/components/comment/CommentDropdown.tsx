@@ -12,6 +12,7 @@ import type { AuthUser, Comment, Post } from "@/types";
 import { useState } from "react";
 import { useDispatch } from "react-redux";
 import { openAlert } from "@/redux/slices/alertSlice";
+import type { AppDispatch } from "@/redux/store.ts";
 
 interface CommentDropdownProps {
   comment: Comment;
@@ -41,7 +42,7 @@ export default function CommentDropdown({
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
 
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
 
   const { mutate: handleDeleteComment, isPending } = deleteCommentMutation;
 

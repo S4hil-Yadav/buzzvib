@@ -8,9 +8,9 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-type WorkerName = "create-post" | "notify-followers" | "delete-post" | (string & {});
+type WorkerName = "notify-followers" | "delete-post-cleanup" | "delete-user-cleanup" | (string & {});
 
-export function getWorkerLogger(workerName: WorkerName) {
+export function getWorkerLogger(_workerName: WorkerName) {
   const istTimestamp = format(info => {
     info.timestamp = new Date().toLocaleString("en-IN", {
       timeZone: "Asia/Kolkata",
@@ -29,7 +29,7 @@ export function getWorkerLogger(workerName: WorkerName) {
   });
 
   if (process.env.MODE === "development") {
-    const logDir = path.join(__dirname, "..", "..", "..", "logs", "workers", workerName);
+    const logDir = path.join(__dirname, "..", "..", "..", "logs", "workers");
     fs.mkdirSync(logDir, { recursive: true });
 
     logger.add(

@@ -7,7 +7,7 @@ export default function LoadingApp() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setMessage("This may take a few seconds if the app was inactive.");
-    }, 3000);
+    }, 10000);
 
     return () => clearTimeout(timer);
   }, []);

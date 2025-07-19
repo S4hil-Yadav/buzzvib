@@ -6,9 +6,12 @@ export interface IUser extends MongooseDocument {
   email: string;
   username: string;
   fullname: string;
-  profilePicture: string;
+  profilePicture: {
+    originalUrl: string;
+    displayUrl: string;
+  } | null;
   password: string;
-  bio: string;
+  bio: string | null;
   count: {
     followers: number;
     following: number;
@@ -63,9 +66,15 @@ const userSchema = new mongoose.Schema<IUser>(
         message: "Only 5 words and max length 30 is allowed",
       },
     },
-    profilePicture: { type: String, default: "" },
+    profilePicture: {
+      type: {
+        originalUrl: { type: String, required: true },
+        displayUrl: { type: String, required: true },
+      },
+      default: null,
+    },
     password: { type: String, required: true, select: false },
-    bio: { type: String, default: "", maxlength: [255, "Bio can not exceed 255 characters"] },
+    bio: { type: String, default: null, maxlength: [255, "Bio can not exceed 255 characters"] },
     count: {
       followers: { type: Number, default: 0 },
       following: { type: Number, default: 0 },
@@ -101,16 +110,13 @@ const userSchema = new mongoose.Schema<IUser>(
   { versionKey: false }
 );
 
-userSchema.index({ email: 1 }, { unique: true });
-userSchema.index({ username: 1 }, { unique: true });
+userSchema.index({ email: 1 }, { unique: true, partialFilterExpression: { deletedAt: null } });
+userSchema.index({ username: 1 }, { unique: true, partialFilterExpression: { deletedAt: null } });
 userSchema.index({ fullname: 1, _id: 1 });
 userSchema.index({ deletedAt: 1 });
 userSchema.index({ "privacy.account.visibility": 1, deletedAt: 1 });
-
-// userSchema.pre(/^(find|update|countDocuments|aggregate)/, function (this: Query<any, any>, next) {
-//   this.where({ deletedAt: null });
-//   next();
-// });
+userSchema.index({ "privacy.account.searchable": 1, deletedAt: 1 });
+userSchema.index({ "moderation.isBanned": 1 });
 
 const UserModel = mongoose.model<IUser>("User", userSchema);
 export default UserModel;
