@@ -50,62 +50,64 @@ export default function PostBody({ post }: { post: Post }) {
         </Box>
       )}
       <Box position="relative" width="100%" overflow="hidden">
-        {post.media.length > 0 &&
-          post.media.map((item, idx) => (
-            <Box
-              key={idx}
-              flex="0 0 100%"
-              display="flex"
-              justifyContent="center"
-              alignItems="center"
-              sx={{ scrollSnapAlign: "center" }}
-            >
-              {item.type === "image" ? (
-                <Box
-                  component="img"
-                  src={item.displayUrl}
-                  alt={item.type}
-                  loading="lazy"
-                  sx={{
-                    width: "100%",
-                    maxHeight: 350,
-                    objectFit: "cover",
-                    borderRadius: 2,
-                    border: "2px solid",
-                    borderColor: "grey.300",
-                  }}
-                  onClick={() => setOpenBigCarousel(true)}
-                />
-              ) : item.type === "video" ? (
-                <VideoPlayer
-                  thumbnail={item.displayUrl}
-                  src={item.originalUrl}
-                  isCurrentIndex={currentIndex === idx}
-                  onClick={() => setOpenBigCarousel(true)}
-                  showControls={currentIndex === idx}
-                />
-              ) : null}
-            </Box>
-          ))}
+        {post.media.length > 0 && (
+          <Box
+            ref={scrollRef}
+            display="flex"
+            width="100%"
+            sx={{
+              // boxShadow: 3,
+              border: "2px solid",
+              borderColor: "divider",
+              borderRadius: 3,
+              overflowX: "auto",
+              scrollSnapType: "x mandatory",
+              WebkitOverflowScrolling: "touch",
+              scrollbarWidth: "none", // Firefox
+              "&::-webkit-scrollbar": { display: "none" }, // Chrome, Safari
+            }}
+          >
+            {post.media.map((item, idx) => (
+              <Box
+                key={idx}
+                flex="0 0 100%"
+                display="flex"
+                justifyContent="center"
+                alignItems="center"
+                sx={{ scrollSnapAlign: "center" }}
+              >
+                {item.type === "image" ? (
+                  <Box
+                    component="img"
+                    src={item.displayUrl}
+                    alt={item.type}
+                    loading="lazy"
+                    sx={{
+                      width: "100%",
+                      maxHeight: 350,
+                      objectFit: "cover",
+                      borderRadius: 2,
+                      border: "2px solid",
+                      borderColor: "grey.300",
+                    }}
+                    onClick={() => setOpenBigCarousel(true)}
+                  />
+                ) : item.type === "video" ? (
+                  <VideoPlayer
+                    thumbnail={item.displayUrl}
+                    src={item.originalUrl}
+                    isCurrentIndex={currentIndex === idx}
+                    onClick={() => setOpenBigCarousel(true)}
+                    showControls={currentIndex === idx}
+                  />
+                ) : null}
+              </Box>
+            ))}
+          </Box>
+        )}
+
         {post.media.length > 1 && (
           <>
-            <Box
-              ref={scrollRef}
-              display="flex"
-              width="100%"
-              sx={{
-                // boxShadow: 3,
-                border: "2px solid",
-                borderColor: "divider",
-                borderRadius: 3,
-                overflowX: "auto",
-                scrollSnapType: "x mandatory",
-                WebkitOverflowScrolling: "touch",
-                scrollbarWidth: "none", // Firefox
-                "&::-webkit-scrollbar": { display: "none" }, // Chrome, Safari
-              }}
-            ></Box>
-
             <IconButton
               onClick={() => setTargetIndex(currentIndex > 0 ? currentIndex - 1 : post.media.length - 1)}
               sx={{
