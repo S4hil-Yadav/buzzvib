@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import type { Comment } from "@/types";
 import { useEditCommentMutation, useSubmitReplyMutation } from "@/services/mutations/comment.mutations";
 import React, { useState } from "react";
+import type { AppDispatch } from "@/redux/store.ts";
 
 interface CommentInputProps {
   postId: string;
@@ -34,7 +35,7 @@ const CommentInput = React.memo(
     const isPending = isPendingEditComment || isPendingSubmitComment || isPendingSubmitReply;
 
     const navigate = useNavigate();
-    const dispatch = useDispatch();
+    const dispatch = useDispatch<AppDispatch>();
 
     const borderColor = disabled
       ? "background.paper"
@@ -90,7 +91,7 @@ const CommentInput = React.memo(
               {action === "edit"
                 ? `Editing comment: ${actionTarget!.text}`
                 : action === "reply"
-                ? `Replying to @${actionTarget!.commentor?.username} ?? [deleted]`
+                ? `Replying to ${actionTarget!.commentor ? `@${actionTarget!.commentor.username}` : "[deleted]"}`
                 : ""}
             </Typography>
             <IconButton size="small" onClick={resetAction}>

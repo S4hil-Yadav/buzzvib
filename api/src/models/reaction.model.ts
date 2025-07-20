@@ -33,8 +33,9 @@ const reactionSchema = new mongoose.Schema<IReaction>(
 
 reactionSchema.index({ user: 1, "target._id": 1 }, { unique: true });
 reactionSchema.index({ "target._id": 1, type: 1 });
-reactionSchema.index({ user: 1, "target._id": 1, type: 1 });
 reactionSchema.index({ user: 1, type: 1, createdAt: -1, _id: -1 });
+reactionSchema.index({ "target.type": 1 });
+reactionSchema.index({ createdAt: -1 });
 
 const LikeModel = mongoose.model<IReaction>("Reaction", reactionSchema);
 export default LikeModel;

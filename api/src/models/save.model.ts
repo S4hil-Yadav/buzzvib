@@ -34,6 +34,7 @@ const saveSchema = new mongoose.Schema<ISave>(
 saveSchema.index({ user: 1, "target._id": 1, saveCollection: 1 }, { unique: true });
 saveSchema.index({ user: 1, saveCollection: 1, createdAt: -1, _id: -1 });
 saveSchema.index({ user: 1, "target._id": 1 });
+saveSchema.index({ "target.type": 1 });
 
 const saveModel = mongoose.model<ISave>("Save", saveSchema);
 export default saveModel;

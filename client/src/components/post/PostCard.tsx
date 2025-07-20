@@ -3,12 +3,15 @@ import PostSkeleton from "./PostSkeleton";
 import PostHeader from "./PostHeader";
 import PostBody from "./PostBody";
 import PostFooter from "./PostFooter";
-import { Box, Card, CardContent, Typography } from "@mui/material";
+import { Box, Card, CardContent, Typography, CircularProgress, Alert } from "@mui/material";
 import { LockOutline as PrivateAccountIcon, SearchOffOutlined as SearchOffIcon } from "@mui/icons-material";
 import LoadingOrError from "@/components/elements/LoadingOrError";
 import type { Post } from "@/types";
 import axios from "axios";
 import { useDeletePostMutation } from "@/services/mutations/post.mutations";
+import { openEditPost } from "@/redux/slices/editPostSlice.ts";
+import { useDispatch } from "react-redux";
+import { type AppDispatch } from "@/redux/store.ts";
 
 interface PostProps {
   postId: Post["_id"];
@@ -17,6 +20,8 @@ interface PostProps {
 }
 
 export default function PostCard({ postId, isDialog = false, handleToggleTab }: PostProps) {
+  const dispatch = useDispatch<AppDispatch>();
+
   const { data: post, isLoading, isFetching, isError, error, refetch } = useGetPostQuery(postId);
 
   const deletePostMutation = useDeletePostMutation();
@@ -70,11 +75,31 @@ export default function PostCard({ postId, isDialog = false, handleToggleTab }: 
         pb: 0,
         mb: { xs: 0.2, sm: 5 },
         opacity: deletePostMutation.isPending ? 0.7 : 1,
-        bgcolor: theme => (theme.palette.mode === "dark" ? theme.palette.background.default : theme.palette.background.paper),
+        bgcolor: theme => (theme.palette.mode === "dark" ? "background.default" : "background.paper"),
       }}
     >
       <CardContent sx={{ p: 0 }}>
         <PostHeader post={post} deletePostMutation={deletePostMutation} />
+
+        {post.status === "processing" ? (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            <Box display="flex" alignItems="center" minWidth="10rem">
+              Processing media...
+              <CircularProgress size={16} sx={{ ml: 2 }} />
+            </Box>
+          </Alert>
+        ) : post.status === "failed" ? (
+          <Alert
+            severity="error"
+            sx={{ mb: 2, cursor: "pointer" }}
+            onClick={() =>
+              dispatch(openEditPost({ _id: post._id, title: post.title ?? "", text: post.text ?? "", media: post.media }))
+            }
+          >
+            Failed to process media. Please try uploading again.
+          </Alert>
+        ) : null}
+
         <PostBody post={post} />
         <PostFooter post={post} handleToggleTab={handleToggleTab} />
         {/* {!isDialog && <CommentInput postId={postId} />} */}

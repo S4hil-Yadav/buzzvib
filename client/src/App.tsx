@@ -60,15 +60,7 @@ export default function App() {
         }}
       >
         {includeNavbar && <Navbar navWidth={navWidth} />}
-        <Box
-          component="main"
-          sx={{
-            display: "flex",
-            flexGrow: 1,
-            mb: isMobile ? "56px" : 0,
-            width: "100%",
-          }}
-        >
+        <Box component="main" sx={{ display: "flex", flexGrow: 1, width: "100%" }}>
           <PageRoutes authUser={authUser} />
         </Box>
 

@@ -14,6 +14,7 @@ import toast from "react-hot-toast";
 import type { AuthUser, Post } from "@/types";
 import { useDispatch } from "react-redux";
 import { openAlert } from "@/redux/slices/alertSlice";
+import type { AppDispatch } from "@/redux/store.ts";
 
 interface PostFooterProps {
   post: Post;
@@ -35,7 +36,7 @@ export default function PostFooter({ post, handleToggleTab }: PostFooterProps) {
 
 function LikeButton({ post }: { post: Post }) {
   const navigate = useNavigate();
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const queryClient = useQueryClient();
   const authUser = queryClient.getQueryData<AuthUser>(["authUser"]);
   const { mutate: togglePostReaction } = useTogglePostReactionMutation();
@@ -92,7 +93,7 @@ function LikeButton({ post }: { post: Post }) {
 
 function DislikeButton({ post }: { post: Post }) {
   const navigate = useNavigate();
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const queryClient = useQueryClient();
   const authUser = queryClient.getQueryData<AuthUser>(["authUser"]);
   const { mutate: togglePostReaction } = useTogglePostReactionMutation();

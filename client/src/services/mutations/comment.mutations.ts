@@ -23,9 +23,9 @@ export function useEditCommentMutation() {
       );
     },
 
-    onError: err => {
-      if (axios.isAxiosError(err)) {
-        toast.error(err.response?.data.message ?? "Something went wrong");
+    onError: error => {
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data.message ?? "Something went wrong");
       }
     },
   });
@@ -75,9 +75,9 @@ export function useDeleteCommentMutation() {
       );
     },
 
-    onError: err => {
-      if (axios.isAxiosError(err)) {
-        toast.error(err.response?.data.message ?? "Something went wrong");
+    onError: error => {
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data.message ?? "Something went wrong");
       }
     },
   });
@@ -135,9 +135,9 @@ export function useSubmitReplyMutation() {
       );
     },
 
-    onError: err => {
-      if (axios.isAxiosError(err)) {
-        toast.error(err.response?.data.message ?? "Something went wrong");
+    onError: error => {
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data.message ?? "Something went wrong");
       }
     },
   });
@@ -146,12 +146,7 @@ export function useSubmitReplyMutation() {
 export function useToggleCommentReactionMutation() {
   const queryClient = useQueryClient();
 
-  return useMutation<
-    void,
-    Error,
-    { commentId: Comment["_id"]; reaction: Post["reaction"] },
-    { previousComment: Comment | undefined }
-  >({
+  return useMutation<void, Error, { commentId: Comment["_id"]; reaction: Post["reaction"] }, Comment | undefined>({
     onMutate: ({ commentId, reaction }) => {
       const previousComment = queryClient.getQueryData<Comment>(["comment", commentId]);
 
@@ -172,16 +167,14 @@ export function useToggleCommentReactionMutation() {
           }
       );
 
-      return { previousComment };
+      return previousComment;
     },
 
     mutationFn: ({ commentId, reaction }) =>
-      apiClient.post<void>(`/comments/${commentId}/react`, { reactionType: reaction ?? "none" }).then(res => res.data),
+      apiClient.post<void>(`/comments/${commentId}/react`, { reactionType: reaction ?? ("none" as const) }).then(res => res.data),
 
-    onError: (_err, { commentId }, context) => {
-      if (context?.previousComment) {
-        queryClient.setQueryData(["comment", commentId], context.previousComment);
-      }
+    onError: (_err, { commentId }, previousComment) => {
+      queryClient.setQueryData(["comment", commentId], data => previousComment ?? data);
     },
   });
 }

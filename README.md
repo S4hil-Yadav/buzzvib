@@ -9,6 +9,7 @@ It was built for learning, experimentation, and practicing full-stack developmen
 
 - Backend API built with Express and TypeScript
 - Frontend built with React and TypeScript
+- Managing api requests from client using TanStack
 - Cloudinary integration for image uploads
 - Redis queue workers using BullMQ
 - JWT-based authentication and refresh tokens
@@ -67,12 +68,14 @@ Create a `.env.local` file in both `api/` and `client/` directories as needed.
 
 ```env
 VITE_API_URL=http://localhost:3000
+VITE_CLIENT_URL=http://localhost:5173
 VITE_GOOGLE_CLIENT_ID=your-google-client-id
 ```
 
 ### Example (`api/.env.local`)
 
 ```env
+BULLMQ_PREFIX=buzzvib-dev
 CLIENT_URL=http://localhost:5173
 CLOUDINARY_API_KEY=your-cloudinary-api-key
 CLOUDINARY_API_SECRET=your-cloudinary-api-secret
@@ -84,9 +87,6 @@ MODE=development
 MONGODB_URI=your-mongodb-connection-uri
 PORT=3000
 REDIS_URL=your-redis-url
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=465
-SMTP_SECURE=true
 SMTP_USER=your-smtp-email
 SMTP_PASS=your-smtp-app-password
 SMTP_FROM=your-smtp-display-name

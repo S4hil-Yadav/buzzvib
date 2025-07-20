@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import MessageModel from "@/models/message.model.js";
 import { ApiError, ErrorCode } from "@/lib/error.js";
 import { getSocketIOInstance } from "@/sockets/ioInstance.js";
-import { isValidReqBody } from "@/utils/typeGuard.utils.js";
+import { isValidReqBody } from "@/utils/typeGuard.js";
 
 export const sendMediaMessage = async (req: Request, res: Response, next: NextFunction) => {
   if (!isValidReqBody(req.body, ["chatroomId", "senderId"])) {

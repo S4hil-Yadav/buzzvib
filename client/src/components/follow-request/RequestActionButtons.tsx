@@ -9,6 +9,7 @@ import {
 import type { User } from "@/types";
 import { openAlert } from "@/redux/slices/alertSlice";
 import { useDispatch } from "react-redux";
+import type { AppDispatch } from "@/redux/store.ts";
 
 interface SenderRequestHandleButtonsProps {
   sender: User;
@@ -45,7 +46,7 @@ interface WithdrawRequestButtonProps {
 export function WithdrawRequestButton({ receiver }: WithdrawRequestButtonProps) {
   const { mutate: removeFollow, isPending } = useRemoveFollowMutation();
 
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
 
   return (
     <Button
@@ -83,7 +84,7 @@ interface UnblockFollowButtonProps {
 export function UnblockFollowButton({ user }: UnblockFollowButtonProps) {
   const { mutate: unblockFollow, isPending } = useUnblockFollowMutation();
 
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
 
   return (
     <Button

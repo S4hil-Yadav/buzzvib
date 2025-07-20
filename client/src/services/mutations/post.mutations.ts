@@ -1,59 +1,116 @@
 import { InfiniteData, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { apiClient } from "@/lib/axios";
-import type { AuthUser, Post, Comment, CommentIdPage, ProfileUser } from "@/types";
+import type { AuthUser, Post, Comment, CommentIdPage, ProfileUser, PostIdPage } from "@/types";
 import { useDispatch } from "react-redux";
-import { clearDraft, clearUploading, setUploading, setUploadProgress } from "@/redux/slices/postDraftSlice";
+import { clearPostDraft, clearPostDraftUploadProgress, setPostDraftUploadProgress } from "@/redux/slices/postDraftSlice";
+import { clearEditPostUploading, setEditPostUploadProgress, setEditPostUploading } from "@/redux/slices/editPostSlice";
 import axios from "axios";
+import type { AppDispatch } from "@/redux/store.ts";
 
 export function useCreatePostMutation() {
-  const dispatch = useDispatch();
+  const queryClient = useQueryClient();
+  const authUser = queryClient.getQueryData<AuthUser>(["authUser"])!;
 
-  return useMutation<void, Error, { formData: FormData }>({
-    onMutate: () => {
-      dispatch(setUploading());
-    },
+  const dispatch = useDispatch<AppDispatch>();
 
+  return useMutation<Pick<Post, "_id" | "status">, Error, { formData: FormData; post: Pick<Post, "title" | "text"> }>({
     mutationFn: ({ formData }) =>
       apiClient
-        .post<void>("/posts", formData, {
+        .post<Pick<Post, "_id" | "status">>("/posts", formData, {
           headers: { "Content-Type": "multipart/form-data" },
-          onUploadProgress: e => dispatch(setUploadProgress(e.total ? Math.round((e.loaded * 100) / e.total) : 0)),
+          onUploadProgress: e => dispatch(setPostDraftUploadProgress(e.total ? Math.round((e.loaded * 100) / e.total) : 0)),
         })
         .then(res => res.data),
 
-    onSuccess: () => {
-      // queryClient.setQueryData<Post>(["post", post._id], post);
+    onSuccess: ({ _id: postId, status }, { post }) => {
+      const newPost: Post = {
+        _id: postId,
+        title: post.title,
+        text: post.text,
+        author: {
+          _id: authUser._id,
+          username: authUser.username,
+          fullname: authUser.fullname,
+          profilePicture: authUser.profilePicture,
+          verified: { profile: authUser.verified.profile },
+        },
+        count: { comments: 0, reactions: { like: 0, dislike: 0 } },
+        createdAt: new Date().toISOString(),
+        editedAt: null,
+        status: status,
+        deletedAt: null,
+        media: [],
+        reaction: null,
+        savedAt: null,
+      };
 
-      // queryClient.setQueryData<ProfileUser>(
-      //   ["user", post.author.username],
-      //   prev =>
-      //     prev && {
-      //       ...prev,
-      //       count: { ...prev.count, posts: prev.count.posts + 1 },
-      //     }
-      // );
+      queryClient.setQueryData<Post>(["post", postId], newPost);
 
-      // queryClient.setQueryData<InfiniteData<PostIdPage, PostIdPage["nextPageParam"]>>(
-      //   ["user", post.author.username, "posts"],
-      //   data =>
-      //     data && {
-      //       ...data,
-      //       pages: data.pages.map((page, i) => (i ? page : { ...page, postIds: [post._id, ...page.postIds] })),
-      //     }
-      // );
+      queryClient.setQueryData<ProfileUser>(
+        ["user", authUser.username],
+        prev => prev && { ...prev, count: { ...prev.count, posts: prev.count.posts + 1 } }
+      );
+
+      queryClient.setQueryData<InfiniteData<PostIdPage, PostIdPage["nextPageParam"]>>(
+        ["user", authUser.username, "posts"],
+        data =>
+          data && {
+            ...data,
+            pages: data.pages.map((page, i) => (i ? page : { ...page, postIds: [postId, ...page.postIds] })),
+          }
+      );
 
       setTimeout(() => {
-        dispatch(clearDraft());
-        toast.success("Post scheduled to upload");
+        dispatch(clearPostDraft());
+        toast.success("Posted");
       }, 500);
     },
 
-    onError: err => {
-      if (axios.isAxiosError(err)) {
-        toast.error(err.response?.data.message ?? "Something went wrong");
+    onError: error => {
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data.message ?? "Something went wrong");
       }
-      dispatch(clearUploading());
+      dispatch(clearPostDraftUploadProgress());
+    },
+  });
+}
+
+export function useEditPostMutation() {
+  const queryClient = useQueryClient();
+
+  const dispatch = useDispatch<AppDispatch>();
+
+  return useMutation<Pick<Post, "status">, Error, { formData: FormData; post: Pick<Post, "_id" | "title" | "text"> }>({
+    onMutate: () => {
+      dispatch(setEditPostUploading());
+    },
+
+    mutationFn: ({ formData, post }) =>
+      apiClient
+        .patch<Pick<Post, "status">>(`/posts/${post._id}`, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+          onUploadProgress: e => dispatch(setEditPostUploadProgress(e.total ? Math.round((e.loaded * 100) / e.total) : 0)),
+        })
+        .then(res => res.data),
+
+    onSuccess: ({ status }, { post }) => {
+      queryClient.setQueryData<Post>(
+        ["post", post._id],
+        data => data && { ...data, title: post.title, text: post.text, media: [], status }
+      );
+
+      setTimeout(() => {
+        dispatch(clearEditPostUploading());
+        toast.success("Post edited");
+      }, 500);
+    },
+
+    onError: error => {
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data.message ?? "Something went wrong");
+      }
+      dispatch(clearEditPostUploading());
     },
   });
 }
@@ -61,7 +118,7 @@ export function useCreatePostMutation() {
 export function useTogglePostReactionMutation() {
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error, { postId: Post["_id"]; reaction: Post["reaction"] }, { previousPost: Post | undefined }>({
+  return useMutation<void, Error, { postId: Post["_id"]; reaction: Post["reaction"] }, Post | undefined>({
     onMutate: ({ postId, reaction }) => {
       const previousPost = queryClient.getQueryData<Post>(["post", postId]);
 
@@ -81,18 +138,16 @@ export function useTogglePostReactionMutation() {
           }
       );
 
-      return { previousPost };
+      return previousPost;
     },
 
     mutationFn: ({ postId, reaction }) =>
-      apiClient.post<void>(`/posts/${postId}/react`, { reactionType: reaction ?? "none" }).then(res => res.data),
+      apiClient.post<void>(`/posts/${postId}/react`, { reactionType: reaction ?? ("none" as const) }).then(res => res.data),
 
     // onSuccess: (_, { postId }) => {},
 
-    onError: (_err, { postId }, context) => {
-      if (context?.previousPost) {
-        queryClient.setQueryData(["post", postId], context.previousPost);
-      }
+    onError: (_err, { postId }, previousPost) => {
+      queryClient.setQueryData(["post", postId], data => previousPost ?? data);
     },
   });
 }
@@ -108,9 +163,9 @@ export function useTogglePostSaveMutation() {
       toast.success(savedAt ? "Post saved" : "Post unsaved");
     },
 
-    onError: err => {
-      if (axios.isAxiosError(err)) {
-        toast.error(err.response?.data.message ?? "Something went wrong");
+    onError: error => {
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data.message ?? "Something went wrong");
       }
     },
   });
@@ -150,9 +205,9 @@ export function useDeletePostMutation() {
       toast.success("Post deleted");
     },
 
-    onError: err => {
-      if (axios.isAxiosError(err)) {
-        toast.error(err.response?.data.message ?? "Something went wrong");
+    onError: error => {
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data.message ?? "Something went wrong");
       }
     },
   });
@@ -206,9 +261,9 @@ export function useSubmitCommentMutation() {
       );
     },
 
-    onError: err => {
-      if (axios.isAxiosError(err)) {
-        toast.error(err.response?.data.message ?? "Something went wrong");
+    onError: error => {
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data.message ?? "Something went wrong");
       }
     },
   });

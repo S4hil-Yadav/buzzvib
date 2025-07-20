@@ -3,7 +3,9 @@ import toast from "react-hot-toast";
 import { apiClient } from "@/lib/axios";
 import type { AuthUser, ProfileUser } from "@/types";
 import axios from "axios";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { persistor, type AppDispatch } from "@/redux/store.ts";
 
 export function useUpdateProfileMutation(options?: { setUploadProgress?: React.Dispatch<React.SetStateAction<number>> }) {
   const location = useLocation();
@@ -50,9 +52,9 @@ export function useUpdateProfileMutation(options?: { setUploadProgress?: React.D
       queryClient.removeQueries({ queryKey: oldPrefix, exact: false });
     },
 
-    onError: err => {
-      if (axios.isAxiosError(err)) {
-        toast.error(err.response?.data.message ?? "Something went wrong");
+    onError: error => {
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data.message ?? "Something went wrong");
       }
     },
   });
@@ -72,9 +74,9 @@ export function useChangeEmailMutation() {
       toast.success("Email changed");
     },
 
-    onError: err => {
-      if (axios.isAxiosError(err)) {
-        toast.error(err.response?.data.message ?? "Something went wrong");
+    onError: error => {
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data.message ?? "Something went wrong");
       }
     },
   });
@@ -84,9 +86,9 @@ export function useRequestEmailVerificationMutation() {
   return useMutation<void, Error>({
     mutationFn: () => apiClient.post<void>("/users/me/email-verification").then(res => res.data),
 
-    onError: err => {
-      if (axios.isAxiosError(err)) {
-        toast.error(err.response?.data.message ?? "Something went wrong");
+    onError: error => {
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data.message ?? "Something went wrong");
       }
     },
   });
@@ -106,9 +108,9 @@ export function useVerifyEmailOTPMutation() {
       );
     },
 
-    onError: err => {
-      if (axios.isAxiosError(err)) {
-        toast.error(err.response?.data.message ?? "Something went wrong");
+    onError: error => {
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data.message ?? "Something went wrong");
       }
     },
   });
@@ -119,9 +121,9 @@ export function useChangePasswordMutation() {
     mutationFn: ({ oldPassword, newPassword }) =>
       apiClient.patch<void>("/users/me/password", { oldPassword, newPassword }).then(res => res.data),
 
-    onError: err => {
-      if (axios.isAxiosError(err)) {
-        toast.error(err.response?.data.message ?? "Something went wrong");
+    onError: error => {
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data.message ?? "Something went wrong");
       }
     },
 
@@ -165,9 +167,35 @@ export function useUpdatePrivacySettingsMutation() {
       );
     },
 
-    onError: err => {
-      if (axios.isAxiosError(err)) {
-        toast.error(err.response?.data.message ?? "Something went wrong");
+    onError: error => {
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data.message ?? "Something went wrong");
+      }
+    },
+  });
+}
+
+export function useDeleteAccountMutation() {
+  const queryClient = useQueryClient();
+  const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
+
+  return useMutation<void, Error, { password: string }>({
+    mutationFn: ({ password }) => apiClient.delete<void>("/users/me", { data: { password } }).then(res => res.data),
+
+    onSuccess: () => {
+      queryClient.clear();
+      localStorage.clear();
+      dispatch({ type: "RESET_STORE" });
+      persistor.purge();
+
+      toast.success("Account deleted");
+      navigate("/auth");
+    },
+
+    onError: error => {
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data.message ?? "Something went wrong");
       }
     },
   });

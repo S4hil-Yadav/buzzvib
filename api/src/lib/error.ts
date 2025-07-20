@@ -1,4 +1,3 @@
-import { logApiError } from "@/loggers/api.logger.js";
 import type { NextFunction } from "express";
 
 export enum ErrorCode {
@@ -26,7 +25,7 @@ export enum ErrorCode {
   OTP_INVALID_OR_EXPIRED = "OTP_INVALID_OR_EXPIRED",
   OTP_SEND_FAILED = "OTP_SEND_FAILED",
   PASSWORD_CHANGE_FAILED = "PASSWORD_CHANGE_FAILED",
-  INCORRECT_OLD_PASSWORD = "INCORRECT_OLD_PASSWORD",
+  INCORRECT_PASSWORD = "INCORRECT_PASSWORD",
   SESSION_NOT_FOUND = "SESSION_NOT_FOUND",
 
   // ──────── Token ────────
@@ -40,6 +39,7 @@ export enum ErrorCode {
   POST_NOT_FOUND = "POST_NOT_FOUND",
   INVALID_FILE_PAYLOAD = "INVALID_FILE_PAYLOAD",
   FAILED_TO_DELETE_POST = "FAILED_TO_DELETE_POST",
+  POST_PROCESSING = "POST_PROCESSING",
 
   // ──────── Comment ────────
   COMMENT_NOT_FOUND = "COMMENT_NOT_FOUND",
@@ -87,11 +87,11 @@ export class ApiError extends Error {
   }
 }
 
-export function handleControllerError(controllerName: string, err: unknown, next: NextFunction) {
-  if (err instanceof ApiError) {
-    next(err);
+export function handleControllerError(controllerName: string, error: unknown, next: NextFunction) {
+  if (error instanceof ApiError) {
+    next(error);
   } else {
-    logApiError(`Error in ${controllerName} controller: ${err}`);
+    logApiError(`Error in ${controllerName} controller:`, error);
     next(new ApiError());
   }
 }

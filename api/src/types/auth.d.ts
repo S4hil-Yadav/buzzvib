@@ -1,14 +1,15 @@
+import { AuthUser } from "types";
 import type mongoose from "mongoose";
 
 export interface GoogleUser {
   sub: string;
-  name: string;
-  given_name: string;
-  family_name: string;
-  picture: string;
-  email: string;
-  email_verified: boolean;
-  locale: string;
+  name?: string;
+  given_name?: string;
+  family_name?: string;
+  picture?: string | null;
+  email?: string;
+  email_verified?: boolean;
+  locale?: string;
   hd?: string;
 }
 
@@ -17,8 +18,8 @@ export interface UserFields {
   email: string;
   password: string;
   fullname: string;
-  bio: string;
-  profilePicture: string;
+  bio: AuthUser["bio"];
+  removeProfilePicture: boolean;
 }
 
 export interface VerificationToken {

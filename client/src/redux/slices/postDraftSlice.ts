@@ -1,30 +1,30 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
+interface PostDraftState {
+  postDraft: { title: string; text: string };
+  uploadProgress: number;
+}
+
+const initialState: PostDraftState = {
+  postDraft: { title: "", text: "" },
+  uploadProgress: 0,
+};
+
 const postDraftSlice = createSlice({
   name: "postDraft",
-  initialState: {
-    postDraft: { title: "", text: "", mediaUrls: [] },
-    uploading: false,
-    uploadProgress: 0,
-  },
+  initialState,
   reducers: {
-    setDraft: (state, action) => ({ ...state, postDraft: action.payload }),
-
-    clearDraft: () => ({
-      postDraft: { title: "", text: "", mediaUrls: [] },
-      uploading: false,
-      uploadProgress: 0,
-    }),
-
-    setUploading: state => ({ ...state, uploading: true }),
-
-    setUploadProgress: (state, action: PayloadAction<number>) => ({ ...state, uploadProgress: action.payload }),
-
-    clearUploading: state => ({ ...state, uploading: false, uploadProgress: 0 }),
+    setPostDraft: (state, { payload: { title, text } }: PayloadAction<{ title?: string; text?: string }>) => {
+      if (typeof title === "string") state.postDraft.title = title;
+      if (typeof text === "string") state.postDraft.text = text;
+    },
+    clearPostDraft: () => initialState,
+    setPostDraftUploadProgress: (state, { payload }: PayloadAction<number>) => ({ ...state, uploadProgress: payload }),
+    clearPostDraftUploadProgress: state => ({ ...state, uploadProgress: 0 }),
   },
 });
 
-export const { setDraft, clearDraft, setUploading, setUploadProgress, clearUploading } = postDraftSlice.actions;
+export const { setPostDraft, clearPostDraft, setPostDraftUploadProgress, clearPostDraftUploadProgress } = postDraftSlice.actions;
 
 const postDraftReducer = postDraftSlice.reducer;
 export default postDraftReducer;

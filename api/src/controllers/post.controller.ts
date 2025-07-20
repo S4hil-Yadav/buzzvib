@@ -3,56 +3,246 @@ import PostModel from "@/models/post.model.js";
 import NotificationModel from "@/models/notification.model.js";
 import ReactionModel from "@/models/reaction.model.js";
 import { NextFunction, Request, Response } from "express";
-import type { Post, User, PostPage, Reaction, UserAccountVisibility } from "types";
+import type { Post, User, PostPage, Reaction, UserAccountVisibility, Media } from "types";
 import SaveModel from "@/models/save.model.js";
 import mongoose from "mongoose";
-import { createPostQueue } from "@/queues/createPost.queue.js";
-import { buildPostEnrichmentStages, buildSearchPostStage } from "@/utils/aggregate.utils.js";
+import { buildPostEnrichmentStages, buildSearchPostStage } from "@/utils/aggregate.js";
 import UserModel from "@/models/user.model.js";
-import { withTransaction } from "@/utils/db.utils.js";
-import { parsePostPayload } from "@/utils/parse.utils.js";
-import { isValidReqBody } from "@/utils/typeGuard.utils.js";
+import { withTransaction } from "@/utils/db.js";
+import { parseFileMetaPayload, parsePostPayload } from "@/utils/parse.js";
+import { isValidReqBody } from "@/utils/typeGuard.js";
 import FollowModel from "@/models/follow.model.js";
 import { POST_PAGE_SIZE } from "@/config/constants.js";
-import { deletePostQueue } from "@/queues/deletePost.queue.js";
+import { deletePostCleanupQueue } from "@/queues/deletePostCleanup.queue.js";
+import cloudinary from "@/lib/cloudinary.js";
+import { notifyFollowersQueue } from "@/queues/notifyFollowers.queue.js";
+import { getSocketIOInstance } from "@/sockets/ioInstance.js";
+import { hasInvalidFile } from "@/utils/fileValidation.js";
 
-export async function createPost(req: Request, res: Response<void>, next: NextFunction) {
+export async function createPost(req: Request, res: Response<Pick<Post, "_id" | "status">>, next: NextFunction) {
   try {
+    const io = getSocketIOInstance();
+
     if (!isValidReqBody(req.body, ["post"])) {
       throw new ApiError(400, { message: "Invalid request body", code: ErrorCode.INVALID_REQUEST_BODY });
     }
 
-    const post = parsePostPayload(req.body.post);
-    const title = post.title.trim() || null;
-    const text = post.text.trim() || null;
+    const postPayload = parsePostPayload(req.body.post);
+
+    const title = postPayload.title?.trim() || null;
+    const text = postPayload.text?.trim() || null;
+    const hashtags = text?.match(/#\w+/g)?.map(tag => tag.slice(1).toLowerCase()) ?? [];
 
     const files = req.files;
 
-    if (
-      !Array.isArray(files) ||
-      files.some(
-        f =>
-          typeof f !== "object" ||
-          typeof f.mimetype !== "string" ||
-          !(f.mimetype.startsWith("image/") || f.mimetype.startsWith("video/"))
-      )
-    ) {
+    if (!Array.isArray(files) || (await hasInvalidFile(files))) {
       throw new ApiError(400, { message: "Invalid file payload", code: ErrorCode.INVALID_FILE_PAYLOAD });
-    }
-
-    if (!title && !text && !files.length) {
+    } else if (!title && !text && !files.length) {
       throw new ApiError(400, { message: "Post can't be empty", code: ErrorCode.INVALID_INPUT });
     }
 
-    await createPostQueue.add(
-      "newPost",
-      { authorId: req.user!._id.toString(), title, text, files },
-      { attempts: 3, backoff: { type: "exponential", delay: 5000 }, removeOnComplete: true, removeOnFail: false }
-    );
+    const status = files.length ? "processing" : "published";
 
-    res.status(201).end();
+    const postId = await withTransaction(async session => {
+      const [postArr] = await Promise.all([
+        PostModel.create([{ author: req.user!._id, title, text, hashtags, status }], {
+          session,
+        }),
+        UserModel.updateOne({ _id: req.user!._id }, { $inc: { "count.posts": 1 } }, { session }),
+      ]);
+
+      return postArr[0]._id;
+    });
+
+    res.status(201).json({ _id: postId, status });
+
+    notifyFollowersQueue
+      .add(
+        "newPost",
+        { authorId: req.user!._id.toString(), postId: postId.toString() },
+        { attempts: 3, backoff: { type: "exponential", delay: 5000 }, removeOnComplete: true, removeOnFail: false }
+      )
+      .catch(error => logApiError("Failed to add to notifyFollowersQueue:", error));
+
+    if (!files.length) return;
+
+    try {
+      const media: Media[] = [];
+
+      for (const f of files) {
+        const resourceType = f.mimetype.startsWith("image/") ? "image" : "video";
+
+        await cloudinary.uploader
+          .upload(f.path, {
+            resource_type: resourceType,
+            folder: `${process.env.DB_PREFIX}/posts/${postId}`,
+            quality: "auto:good",
+            fetch_format: "auto",
+            flags: f.mimetype === "image/gif" ? "lossy" : "progressive",
+            eager: [
+              {
+                format: f.mimetype === "image/gif" ? "gif" : "jpg",
+                quality: "auto:good",
+                fetch_format: "auto",
+                flags: f.mimetype === "image/gif" ? "lossy" : "progressive",
+              },
+            ],
+          })
+          .then(res => {
+            media.push({ type: resourceType, originalUrl: res.secure_url, displayUrl: res.eager[0].secure_url });
+            io.to(String(req.user!._id)).emit("post-media", { postId: postId, media, status: "processing" });
+          })
+          .catch(error => {
+            io.to(String(req.user!._id)).emit("post-media:error", `Failed to upload file ${f.originalname}`);
+            logApiError("Failed to upload file", f, error);
+          });
+      }
+
+      if (media.length) {
+        await PostModel.updateOne({ _id: postId }, { $set: { media, status: "published" } });
+      } else {
+        throw new Error("Failed to upload any media item");
+      }
+
+      io.to(String(req.user!._id)).emit("post-media", { postId: postId, media, status: "published" });
+    } catch (error) {
+      logApiError("Background processing error in createPost:", error);
+
+      io.to(String(req.user!._id)).emit("post-media", { postId: postId, media: [], status: "failed" });
+
+      Promise.all([PostModel.updateOne({ _id: postId }, { $set: { status: "failed" } })]).catch(error =>
+        logApiError("Background processing error handler error in createPost:", error)
+      );
+    }
   } catch (error) {
     handleControllerError("createPost", error, next);
+  }
+}
+
+export async function editPost(req: Request<{ postId: string }>, res: Response<Pick<Post, "status">>, next: NextFunction) {
+  try {
+    const io = getSocketIOInstance();
+    const { postId: rawPostId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(rawPostId)) {
+      throw new ApiError(400, { message: "Invalid post id", code: ErrorCode.INVALID_OBJECT_ID });
+    } else if (!isValidReqBody(req.body, ["post", "fileMeta"])) {
+      throw new ApiError(400, { message: "Invalid request body", code: ErrorCode.INVALID_REQUEST_BODY });
+    }
+
+    const postId = new mongoose.Types.ObjectId(rawPostId);
+    const postPayload = parsePostPayload(req.body.post);
+    const fileMeta = parseFileMetaPayload(req.body.fileMeta);
+
+    const title = postPayload.title?.trim() || null;
+    const text = postPayload.text?.trim() || null;
+    const hashtags = text?.match(/#\w+/g)?.map(tag => tag.slice(1).toLowerCase()) ?? [];
+
+    const files = req.files;
+
+    if (!Array.isArray(files) || (await hasInvalidFile(files))) {
+      throw new ApiError(400, { message: "Invalid file payload", code: ErrorCode.INVALID_FILE_PAYLOAD });
+    } else if (!title && !text && !fileMeta.length) {
+      throw new ApiError(400, { message: "Post can't be empty", code: ErrorCode.INVALID_INPUT });
+    }
+
+    const existingPost = await PostModel.findOne({ _id: postId, deletedAt: null })
+      .select("author media status")
+      .lean<{ author: User["_id"]; media: Media[]; status: Post["status"] }>();
+
+    if (!existingPost) {
+      throw new ApiError(404, { message: "Post not found", code: ErrorCode.POST_NOT_FOUND });
+    } else if (String(existingPost.author) !== String(req.user!._id)) {
+      throw new ApiError(403, { message: "Unauthorized to edit other user's post", code: ErrorCode.FORBIDDEN });
+    } else if (existingPost.status === "processing") {
+      throw new ApiError(409, {
+        message: "Cannot edit post while media is still processing",
+        code: ErrorCode.POST_PROCESSING,
+      });
+    }
+
+    const status = fileMeta.length ? "processing" : "published";
+
+    await PostModel.updateOne({ _id: postId }, { $set: { title, text, hashtags, editedAt: new Date(), status } });
+
+    res.status(200).json({ status });
+
+    if (!fileMeta.length) return;
+
+    try {
+      const uploadedFiles = files;
+      const oldMediaMap = Object.fromEntries(existingPost.media.map(item => [item.originalUrl, item]));
+      const media: Media[] = [];
+
+      for (let i = 0; i < fileMeta.length; i++) {
+        const meta = fileMeta[i];
+
+        if (meta.type === "url") {
+          if (oldMediaMap[meta.value]) {
+            media.push(oldMediaMap[meta.value]);
+            delete oldMediaMap[meta.value];
+          }
+
+          io.to(String(req.user!._id)).emit("post-media", { postId, media, status: "processing" });
+          continue;
+        }
+
+        const file = uploadedFiles.shift();
+
+        if (!file) {
+          io.to(String(req.user!._id)).emit("post-media:error", `Missing file for index ${i}`);
+          continue;
+        }
+
+        const resourceType = file.mimetype.startsWith("image/") ? "image" : "video";
+
+        await cloudinary.uploader
+          .upload(file.path, {
+            resource_type: resourceType,
+            folder: `${process.env.DB_PREFIX}/posts/${postId}`,
+            quality: "auto:good",
+            fetch_format: "auto",
+            flags: file.mimetype === "image/gif" ? "lossy" : "progressive",
+            eager: [
+              {
+                format: file.mimetype === "image/gif" ? "gif" : "jpg",
+                quality: "auto:good",
+                fetch_format: "auto",
+                flags: file.mimetype === "image/gif" ? "lossy" : "progressive",
+              },
+            ],
+          })
+          .then(res => {
+            media.push({ type: resourceType, originalUrl: res.secure_url, displayUrl: res.eager?.[0].secure_url });
+            io.to(String(req.user!._id)).emit("post-media", { postId: postId, media, status: "processing" });
+          })
+          .catch(error => {
+            io.to(String(req.user!._id)).emit("post-media:error", `Failed to upload file ${file.originalname}`);
+            logApiError("Failed to upload file", file, error);
+          });
+      }
+
+      if (media.length) {
+        await PostModel.updateOne({ _id: postId }, { $set: { media }, status: "published" });
+      } else {
+        throw new Error("Failed to upload any media item");
+      }
+
+      io.to(String(req.user!._id)).emit("post-media", { postId: postId, media, status: "published" });
+    } catch (error) {
+      logApiError("Background processing error in editPost:", error);
+
+      io.to(String(req.user!._id)).emit("post-media", { postId: postId, media: existingPost.media, status: "failed" });
+
+      Promise.all([
+        PostModel.updateOne({ _id: postId }, { $set: { status: "failed" } }),
+        existingPost.status === "published"
+          ? UserModel.updateOne({ _id: req.user!._id }, { $inc: { "count.posts": -1 } })
+          : Promise.resolve(),
+      ]).catch(error => logApiError("Background processing error handler error in editPost:", error));
+    }
+  } catch (error) {
+    handleControllerError("editPost", error, next);
   }
 }
 
@@ -122,7 +312,7 @@ export async function searchPosts(req: Request, res: Response<PostPage>, next: N
 export async function getPosts(req: Request, res: Response<PostPage>, next: NextFunction) {
   try {
     const pageParam = req.query;
-    const postMatchConditions: Record<string, any> = { ...(req.user ? { author: { $ne: req.user?._id } } : {}), deletedAt: null };
+    const postMatchConditions: Record<string, any> = { deletedAt: null };
 
     if (
       typeof pageParam._id === "string" &&
@@ -225,6 +415,10 @@ export async function getPost(req: Request<{ postId: string }>, res: Response<Po
       post.text = null;
       post.media = [];
       post.count = { reactions: { like: 0, dislike: 0 }, comments: 0 };
+    }
+
+    if (post.status === "processing") {
+      post.media = [];
     }
 
     res.status(200).json(post);
@@ -393,10 +587,10 @@ export async function deletePost(req: Request<{ postId: string }>, res: Response
     const postId = new mongoose.Types.ObjectId(rawPostId);
 
     await withTransaction(async session => {
-      const [post, updateResult] = await Promise.all([
+      const [post] = await Promise.all([
         PostModel.findOneAndUpdate({ _id: postId, deletedAt: null }, { $set: { deletedAt: new Date() } }, { session })
-          .select("_id author")
-          .lean<{ _id: Post["_id"]; author: User["_id"] }>(),
+          .select("_id author status")
+          .lean<{ _id: Post["_id"]; author: User["_id"]; status: Post["status"] }>(),
         UserModel.updateOne({ _id: req.user!._id }, { $inc: { "count.posts": -1 } }, { session }),
       ]);
 
@@ -404,16 +598,21 @@ export async function deletePost(req: Request<{ postId: string }>, res: Response
         throw new ApiError(404, { message: "Post not found", code: ErrorCode.POST_NOT_FOUND });
       } else if (String(post.author) !== String(req.user!._id)) {
         throw new ApiError(403, { message: "Unauthorized to delete other user's post", code: ErrorCode.FORBIDDEN });
-      } else if (!updateResult.matchedCount) {
-        throw new ApiError(500, { message: "Failed to change post count", code: ErrorCode.INTERNAL_ERROR });
+      } else if (post.status === "processing") {
+        throw new ApiError(409, {
+          message: "Cannot delete post while media is still processing",
+          code: ErrorCode.POST_PROCESSING,
+        });
       }
+    });
 
-      await deletePostQueue.add(
-        "newPost",
+    deletePostCleanupQueue
+      .add(
+        "deletePost",
         { postId: postId.toString() },
         { attempts: 3, backoff: { type: "exponential", delay: 5000 }, removeOnComplete: true, removeOnFail: false }
-      );
-    });
+      )
+      .catch(error => logApiError("Failed to add to deletePostCleanupQueue:", error));
 
     res.status(204).end();
   } catch (error) {

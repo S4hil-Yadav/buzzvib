@@ -2,7 +2,10 @@ export interface User {
   _id: string;
   username: string;
   fullname: string;
-  profilePicture: string;
+  profilePicture: {
+    originalUrl: string;
+    displayUrl: string;
+  } | null;
   verified: { profile: boolean };
 }
 
@@ -16,7 +19,7 @@ export interface ProfileUser extends User {
     website: string;
   };
   count: { followers: number; following: number; posts: number };
-  bio: string;
+  bio: string | null;
 }
 
 export interface AuthUser extends ProfileUser {

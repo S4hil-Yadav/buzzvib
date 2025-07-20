@@ -100,7 +100,7 @@ export default function RequestList({
               flex: 1,
             }}
           >
-            <Avatar src={req.user.profilePicture} alt={req.user.fullname} sx={{ width: 50, height: 50 }} />
+            <Avatar src={req.user.profilePicture?.displayUrl} alt={req.user.fullname} sx={{ width: 50, height: 50 }} />
             <Box ml={2}>
               <Typography variant="subtitle1" fontWeight="bold" color="text.primary">
                 {req.user.username}

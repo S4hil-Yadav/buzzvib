@@ -15,6 +15,7 @@ import { useDispatch } from "react-redux";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToggleCommentReactionMutation } from "@/services/mutations/comment.mutations";
 import { openAlert } from "@/redux/slices/alertSlice";
+import type { AppDispatch } from "@/redux/store.ts";
 
 interface CommentFooterProps {
   postId: Post["_id"];
@@ -69,7 +70,7 @@ interface LikeButtonProps {
 function LikeButton({ comment }: LikeButtonProps) {
   const navigate = useNavigate();
 
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
 
   const queryClient = useQueryClient();
   const authUser = queryClient.getQueryData<AuthUser>(["authUser"]);
@@ -121,7 +122,7 @@ interface DislikeButtonProps {
 function DislikeButton({ comment }: DislikeButtonProps) {
   const navigate = useNavigate();
 
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
 
   const queryClient = useQueryClient();
   const authUser = queryClient.getQueryData<AuthUser>(["authUser"]);

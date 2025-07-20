@@ -15,9 +15,9 @@ export function useCreatePrivateChatMutation() {
       navigate(`/chat/${chatroomId}`);
     },
 
-    onError: err => {
-      if (axios.isAxiosError(err)) {
-        toast.error(err.response?.data.message ?? "Something went wrong");
+    onError: error => {
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data.message ?? "Something went wrong");
       }
     },
   });

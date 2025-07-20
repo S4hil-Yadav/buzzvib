@@ -1,11 +1,9 @@
-export interface CreatePostJobPayload {
-  authorId: string;
-  title: string | null;
-  text: string | null;
-  files: Express.Multer.File[];
-}
-export interface DeletePostJobPayload {
+export interface DeletePostCleanupJobPayload {
   postId: string;
+}
+
+export interface DeleteUserCleanupJobPayload {
+  userId: string;
 }
 
 export interface NotifyFollowersJobPayload {

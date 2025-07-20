@@ -28,14 +28,14 @@ import {
   buildUserFieldEnrichmentStage,
   buildPostEnrichmentStages,
   buildSearchUserStage,
-} from "@/utils/aggregate.utils.js";
-import { parseUpdateUserFields } from "@/utils/parse.utils.js";
-import { isValidReqBody } from "@/utils/typeGuard.utils.js";
+} from "@/utils/aggregate.js";
+import { parseUpdateUserFields } from "@/utils/parse.js";
+import { isValidReqBody } from "@/utils/typeGuard.js";
 import { sendEmailVerificationEmail } from "@/services/email.service.js";
-import { withTransaction } from "@/utils/db.utils.js";
-import { USER_PAGE_SIZE, POST_PAGE_SIZE, ALLOWED_IMAGE_MIME_TYPES } from "@/config/constants.js";
+import { withTransaction } from "@/utils/db.js";
+import { USER_PAGE_SIZE, POST_PAGE_SIZE } from "@/config/constants.js";
 import SessionModel from "@/models/session.model.js";
-import { logApiError } from "@/loggers/api.logger.js";
+import { sendAccountDeletionEmail } from "@/services/email.service.js";
 
 export async function getUsers(req: Request, res: Response<User[]>, next: NextFunction) {
   try {
@@ -422,8 +422,6 @@ export async function getLikedPosts(req: Request, res: Response<PostPage>, next:
       { $project: { _id: 1, createdAt: 1, post: 1 } },
     ]);
 
-    logApiError(1, likeAgg);
-
     const lastLike = likeAgg[likeAgg.length - 1];
     const nextPageParam =
       likeAgg.length === POST_PAGE_SIZE && lastLike ? { _id: lastLike._id, createdAt: lastLike.createdAt } : null;
@@ -521,7 +519,7 @@ export async function updateProfile(req: Request, res: Response<AuthUser>, next:
 
     const username = userFields.username.replace(/\s+/g, "");
     const fullname = userFields.fullname.trim();
-    const bio = userFields.bio.trim();
+    const bio = userFields.bio?.trim() ?? null;
 
     const newProfilePicture = req.file?.path;
 
@@ -529,26 +527,33 @@ export async function updateProfile(req: Request, res: Response<AuthUser>, next:
       throw new ApiError(422, { message: "Username is required", code: ErrorCode.INVALID_INPUT });
     } else if (!fullname) {
       throw new ApiError(422, { message: "Full name is required", code: ErrorCode.INVALID_INPUT });
-    } else if (req.file && !ALLOWED_IMAGE_MIME_TYPES.includes(req.file.mimetype)) {
-      throw new ApiError(400, { message: "Only static images are allowed", code: ErrorCode.INVALID_INPUT });
     } else if (await UserModel.exists({ username, _id: { $ne: req.user!._id } })) {
       throw new ApiError(409, { message: "Username already exists", code: ErrorCode.USERNAME_ALREADY_EXISTS });
     }
 
     const user = await UserModel.findOne({ _id: req.user!._id, deletedAt: null })
-      .select("-_id profilePicture")
-      .lean<Pick<AuthUser, "profilePicture">>();
+      .select("-_id profilePicture verified.profile")
+      .lean<{ profilePicture: AuthUser["profilePicture"]; verified: { profile: boolean } }>();
 
     if (!user) {
       throw new ApiError(404, { message: "User not found", code: ErrorCode.USER_NOT_FOUND });
     }
 
-    const prevProfilePicture = user.profilePicture;
+    const prevProfilePicture = user.profilePicture?.originalUrl ?? null;
 
     const uploadRes = newProfilePicture
       ? await cloudinary.uploader.upload(newProfilePicture, {
           resource_type: "image",
-          folder: `buzzvib/users/${req.user!._id}/profile-picture`,
+          folder: `${process.env.DB_PREFIX}/users/${req.user!._id}/profile-picture`,
+          quality: "auto:good",
+          ...(user.verified.profile ? { width: 1200, height: 1200 } : { format: "jpg", width: 800, height: 800 }),
+          crop: "fill",
+          eager: {
+            crop: "fill",
+            gravity: "face",
+            quality: "auto:good",
+            ...(user.verified.profile ? { width: 300, height: 300 } : { format: "jpg", width: 150, height: 150 }),
+          },
         })
       : null;
 
@@ -559,21 +564,15 @@ export async function updateProfile(req: Request, res: Response<AuthUser>, next:
           username,
           fullname,
           bio,
-          profilePicture: !userFields.profilePicture
-            ? ""
-            : newProfilePicture && uploadRes
-            ? uploadRes.secure_url
+          profilePicture: userFields.removeProfilePicture
+            ? null
+            : uploadRes
+            ? { originalUrl: uploadRes.secure_url, displayUrl: uploadRes.eager[0].secure_url }
             : prevProfilePicture,
         },
       },
       { new: true }
     ).lean<AuthUser>();
-
-    // if (prevProfilePicture && prevProfilePicture !== userFields.profilePicture) {
-    //   const publicId = prevProfilePicture.split("/").pop()!.split(".")[0];
-    //   await cloudinary.uploader.destroy(publicId)
-    // .catch(error => logApiError(`Failed to delete previous profile picture in updateUser controller ${error}`));
-    // }
 
     if (!updatedUser) {
       throw new ApiError(404, { message: "User not found", code: ErrorCode.USER_NOT_FOUND });
@@ -713,7 +712,7 @@ export async function changePassword(req: Request, res: Response<void>, next: Ne
       if (!user) {
         throw new ApiError(404, { message: "User not found", code: ErrorCode.USER_NOT_FOUND });
       } else if (!(await bcrypt.compare(oldPassword, user.password))) {
-        throw new ApiError(403, { message: "Incorrect old password", code: ErrorCode.INCORRECT_OLD_PASSWORD });
+        throw new ApiError(403, { message: "Incorrect old password", code: ErrorCode.INCORRECT_PASSWORD });
       }
     });
 
@@ -758,5 +757,47 @@ export async function updatePrivacySettings(req: Request, res: Response<void>, n
     res.status(204).end();
   } catch (error) {
     handleControllerError("updatePrivacySettings", error, next);
+  }
+}
+
+export async function deleteAccount(req: Request, res: Response<void>, next: NextFunction) {
+  try {
+    if (!isValidReqBody(req.body, ["password"])) {
+      throw new ApiError(400, { message: "Invalid request body", code: ErrorCode.INVALID_REQUEST_BODY });
+    }
+
+    const password = String(req.body.password).replace(/\s+/g, "");
+
+    if (!password) {
+      throw new ApiError(422, { message: "Password is required", code: ErrorCode.INVALID_INPUT });
+    }
+
+    const user = await UserModel.findOne({ _id: req.user!._id, deletedAt: null })
+      .select("password email fullname")
+      .lean<{ password: string; email: string; fullname: string }>();
+
+    if (!user) {
+      throw new ApiError(404, { message: "User not found", code: ErrorCode.USER_NOT_FOUND });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new ApiError(403, { message: "Incorrect password", code: ErrorCode.INCORRECT_PASSWORD });
+    }
+
+    await UserModel.updateOne({ _id: req.user!._id, deletedAt: null }, { $set: { deletedAt: new Date() } });
+
+    const { deleteUserCleanupQueue } = await import("@/queues/deleteUserCleanup.queue.js");
+    await deleteUserCleanupQueue.add("deleteUserCleanup", { userId: String(req.user!._id) });
+
+    await SessionModel.deleteMany({ user: req.user!._id });
+
+    res.status(204).end();
+
+    sendAccountDeletionEmail(user.email, user.fullname).catch(error =>
+      logApiError("Failed to send account deletion email:", error)
+    );
+  } catch (error) {
+    handleControllerError("deleteUser", error, next);
   }
 }

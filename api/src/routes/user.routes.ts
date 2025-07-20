@@ -16,6 +16,7 @@ import {
   changePassword,
   verifyEmailOTP,
   requestEmailVerification,
+  deleteAccount,
 } from "@/controllers/user.controller.js";
 import upload from "@/lib/multer.js";
 
@@ -36,6 +37,7 @@ userRoutes.post("/me/email-verification", protectRoute, requestEmailVerification
 userRoutes.put("/me/email-verification", protectRoute, verifyEmailOTP);
 userRoutes.patch("/me/password", protectRoute, changePassword);
 userRoutes.patch("/me/privacy-settings", protectRoute, updatePrivacySettings);
+userRoutes.delete("/me", protectRoute, deleteAccount);
 // userRoutes.patch("/me/phone", protectRoute, () => {});
 // userRoutes.patch("/me/notification-settings", protectRoute, () => {});
 // userRoutes.post("/me/deactivate", protectRoute, () => {});

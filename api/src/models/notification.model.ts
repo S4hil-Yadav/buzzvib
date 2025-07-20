@@ -63,6 +63,9 @@ notificationSchema.index({ "target.post": 1 });
 notificationSchema.index({ "target.comment": 1 });
 notificationSchema.index({ receiver: 1, seenAt: 1, createdAt: -1 });
 notificationSchema.index({ receiver: 1, createdAt: -1, _id: -1 });
+notificationSchema.index({ sender: 1 });
+notificationSchema.index({ type: 1 });
+notificationSchema.index({ receiver: 1, seenAt: 1 });
 
 const NotificationModel = mongoose.model<INotification>("Notification", notificationSchema);
 export default NotificationModel;

@@ -5,8 +5,8 @@ import FollowModel, { type IFollow } from "@/models/follow.model.js";
 import { NextFunction, Request, Response } from "express";
 import mongoose from "mongoose";
 import type { FollowRequestPage, FollowStatus, User, FollowStatuses, Block, BlockPage, FollowRequest } from "types";
-import { buildUserFieldEnrichmentStage } from "@/utils/aggregate.utils.js";
-import { withTransaction } from "@/utils/db.utils.js";
+import { buildUserFieldEnrichmentStage } from "@/utils/aggregate.js";
+import { withTransaction } from "@/utils/db.js";
 import { FOLLOW_REQUEST_PAGE_SIZE, FOLLOW_STATUS_PAGE_SIZE } from "@/config/constants.js";
 
 export async function createFollow(
@@ -66,7 +66,7 @@ export async function createFollow(
       return followDoc._id;
     });
 
-    res.status(200).json({ _id: followId, followingStatus: isPublic ? "accepted" : "requested" });
+    res.status(201).json({ _id: followId, followingStatus: isPublic ? "accepted" : "requested" });
   } catch (error) {
     handleControllerError("createFollow", error, next);
   }

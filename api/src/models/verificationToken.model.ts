@@ -24,6 +24,7 @@ const VerificationTokenSchema = new mongoose.Schema<IVerificationToken>(
 
 VerificationTokenSchema.index({ identifier: 1, type: 1 });
 VerificationTokenSchema.index({ secret: 1, expiresAt: 1, used: 1 });
+VerificationTokenSchema.index({ user: 1, type: 1 });
 
 const VerificationTokenModel = mongoose.model<IVerificationToken>("VerificationToken", VerificationTokenSchema);
 export default VerificationTokenModel;

@@ -1,10 +1,9 @@
 import ChatroomModel from "@/models/chatroom.model.js";
 import MessageModel from "@/models/message.model.js";
-import { logApiError } from "@/loggers/api.logger.js";
 import mongoose from "mongoose";
 import type { Server as SocketServer, Socket } from "socket.io";
 import ChatroomMemberModel from "@/models/chatroomMember.model.js";
-import { isValidMessagePayload } from "@/utils/typeGuard.utils.js";
+import { isValidMessagePayload } from "@/utils/typeGuard.js";
 import type { Chatroom } from "types";
 
 export function joinChatrooms(_io: SocketServer, socket: Socket, userId: string = socket.data.user._id) {
@@ -57,8 +56,8 @@ export function sendMessage(io: SocketServer, socket: Socket, userId: string = s
       });
 
       io.to(chatroomId).emit("receive-message", message);
-    } catch (err) {
-      logApiError(`sendMessage error: ${err instanceof Error ? err.message : JSON.stringify(err)}`);
+    } catch (error) {
+      logApiError(`sendMessage error: ${error instanceof Error ? error.message : JSON.stringify(error)}`);
       socket.emit("chatroom:error", "Failed to send message");
     }
   };

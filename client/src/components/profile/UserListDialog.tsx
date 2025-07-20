@@ -10,7 +10,6 @@ import {
   ListItem,
   Link as MuiLink,
   useMediaQuery,
-  useTheme,
   IconButton,
 } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
@@ -37,8 +36,7 @@ export default function UserListDialog({ profileUser, privateAccount, userCount,
     setOpen(false);
   }
 
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isMobile = useMediaQuery(theme => theme.breakpoints.down("sm"));
 
   return (
     <>
@@ -59,7 +57,7 @@ export default function UserListDialog({ profileUser, privateAccount, userCount,
             justifyContent: "space-between",
             px: 3,
             height: 60,
-            borderBottom: `1px solid ${theme.palette.divider}`,
+            borderBottom: theme => `1px solid ${theme.palette.divider}`,
           }}
         >
           <Box />
@@ -218,7 +216,7 @@ function UserList({ type, userCount, profileUser, handleClose, getUsersQuery }: 
                 color: "inherit",
               }}
             >
-              <Avatar src={user.profilePicture} alt={user.fullname} sx={{ width: 46, height: 46 }} />
+              <Avatar src={user.profilePicture?.displayUrl} alt={user.fullname} sx={{ width: 46, height: 46 }} />
               <Box>
                 <Typography fontWeight={600} noWrap>
                   {user.username}

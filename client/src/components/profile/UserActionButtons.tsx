@@ -11,13 +11,14 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useGetFollowStatusQuery } from "@/services/queries/follow.queries";
 import { useCreatePrivateChatMutation } from "@/services/mutations/chat.mutations.ts";
 import type { AuthUser, User } from "@/types";
+import type { AppDispatch } from "@/redux/store.ts";
 
 interface HandleFollowButtonProps {
   user: User;
 }
 
 export function HandleFollowButton({ user }: HandleFollowButtonProps) {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
 
   const queryClient = useQueryClient();
@@ -99,7 +100,7 @@ interface RemoveFollowerButtonProps {
 }
 
 export function RemoveFollowerButton({ follower }: RemoveFollowerButtonProps) {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const { mutate: removeFollower, isPending } = useRemoveFollowerMutation();
 
   return (
@@ -141,7 +142,7 @@ interface MessageButtonProps {
 }
 
 export function MessageButton({ user }: MessageButtonProps) {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const authUser = queryClient.getQueryData<AuthUser>(["authUser"]);

@@ -1,4 +1,4 @@
-import type { Tokens } from "@/types/auth.js";
+import type { Tokens } from "@/types";
 import { clearTokens, setTokens } from "@/utils";
 import axios, { type InternalAxiosRequestConfig } from "axios";
 
@@ -31,15 +31,16 @@ apiClient.interceptors.response.use(
     }
     return res;
   },
-  async err => {
-    if (!axios.isAxiosError(err) || !err.config || retriedRequests.has(err.config)) {
-      return Promise.reject(err);
+  async error => {
+    if (!axios.isAxiosError(error) || !error.config || retriedRequests.has(error.config)) {
+      return Promise.reject(error);
     }
 
-    const originalRequest = err.config;
+    const originalRequest = error.config;
 
-    if (err.response?.data?.code === "INVALID_ACCESS_TOKEN") {
+    if (error.response?.data?.code === "INVALID_ACCESS_TOKEN") {
       if (isRefreshing) {
+        clearTokens();
         return new Promise(resolve => queuedRequests.push(() => resolve(apiClient(originalRequest))));
       }
 
@@ -60,17 +61,20 @@ apiClient.interceptors.response.use(
         queuedRequests.forEach(cb => cb());
         queuedRequests = [];
         return apiClient(originalRequest);
-      } catch (err) {
-        if (axios.isAxiosError(err) && ["INVALID_REFRESH_TOKEN", "MISSING_REFRESH_TOKEN"].includes(err.response?.data?.code)) {
+      } catch (error) {
+        if (
+          axios.isAxiosError(error) &&
+          ["INVALID_REFRESH_TOKEN", "MISSING_REFRESH_TOKEN"].includes(error.response?.data?.code)
+        ) {
           clearTokens();
         }
         queuedRequests = [];
-        return Promise.reject(err);
+        return Promise.reject(error);
       } finally {
         isRefreshing = false;
       }
     }
 
-    return Promise.reject(err);
+    return Promise.reject(error);
   }
 );

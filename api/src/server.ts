@@ -1,8 +1,8 @@
+import "@/setupGlobals.js";
 import express from "express";
 import http from "http";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
-import path from "path";
 import cors from "cors";
 import authRoutes from "@/routes/auth.routes.js";
 import userRoutes from "@/routes/user.routes.js";
@@ -13,11 +13,10 @@ import chatRoutes from "@/routes/chat.routes.js";
 import notificationRoutes from "@/routes/notification.routes.js";
 import { connectDB } from "@/lib/db.js";
 import { attachUser } from "@/middleware/attachUser.middleware.js";
-import { logApiError, logApiInfo } from "@/loggers/api.logger.js";
 import messageRoutes from "@/routes/message.routes.js";
 import { Server as SocketServer } from "socket.io";
 import { setSocketIOInstance } from "@/sockets/ioInstance.js";
-import chatSocketHandler from "@/sockets/chat.socket.js";
+import socketHandler from "@/sockets/index.js";
 import { corsConfig } from "@/config/cors.config.js";
 import { errorHandler } from "@/middleware/errorHandler.middleware.js";
 
@@ -56,7 +55,7 @@ setSocketIOInstance(io);
 const PORT = parseInt(process.env.PORT);
 
 connectDB({ logInfo: logApiInfo, logError: logApiError }).then(() => {
-  chatSocketHandler(io);
+  socketHandler(io);
 
   server.listen(PORT, () => {
     logApiInfo(`Server is running on port ${PORT}`);

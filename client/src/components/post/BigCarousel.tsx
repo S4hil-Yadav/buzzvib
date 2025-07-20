@@ -1,9 +1,8 @@
-import { Dialog, Box, IconButton, useTheme } from "@mui/material";
-import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
-import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
-import CloseIcon from "@mui/icons-material/Close";
-import { useEffect, useState } from "react";
+import { Dialog, Box, IconButton } from "@mui/material";
+import { ArrowBackIosNew as PrevIcon, ArrowForwardIos as NextIcon, Close as CloseIcon } from "@mui/icons-material";
+import { useEffect, useState, useCallback, useRef } from "react";
 import type { Media } from "@/types";
+import VideoPlayer from "@/components/elements/VideoPlayer";
 
 interface BigCarouselProps {
   open: boolean;
@@ -14,29 +13,66 @@ interface BigCarouselProps {
 
 export default function BigCarousel({ open, onClose, media, initialIndex }: BigCarouselProps) {
   const [index, setIndex] = useState(0);
+  const [targetIndex, setTargetIndex] = useState<number | null>(null);
+  const [scrollContainer, setScrollContainer] = useState<HTMLDivElement | null>(null);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout>(null);
+
+  const scrollRef = useCallback((node: HTMLDivElement | null) => setScrollContainer(node), []);
 
   useEffect(() => {
     setIndex(initialIndex);
-  }, [initialIndex]);
+    setTargetIndex(initialIndex);
+  }, [initialIndex, open]);
 
-  const theme = useTheme();
+  useEffect(() => {
+    if (!scrollContainer || targetIndex === null) return;
+
+    const width = scrollContainer.offsetWidth;
+    scrollContainer.scrollTo({ left: width * targetIndex, behavior: index === targetIndex ? "instant" : "smooth" });
+
+    setIndex(targetIndex);
+    setTargetIndex(null);
+  }, [index, targetIndex, scrollContainer]);
+
+  useEffect(() => {
+    if (!scrollContainer) return;
+
+    const handleScroll = () => {
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+
+      scrollTimeoutRef.current = setTimeout(() => {
+        const newIndex = Math.round(scrollContainer.scrollLeft / scrollContainer.offsetWidth);
+        setIndex(newIndex);
+      }, 100);
+    };
+
+    scrollContainer.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => {
+      scrollContainer.removeEventListener("scroll", handleScroll);
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    };
+  }, [scrollContainer]);
+
+  function handlePrevious() {
+    const newIndex = index > 0 ? index - 1 : media.length - 1;
+    setTargetIndex(newIndex);
+  }
+
+  function handleNext() {
+    const newIndex = (index + 1) % media.length;
+    setTargetIndex(newIndex);
+  }
+
+  const bgcolor = media[index]?.type === "video" ? "#282A36" : "background.paper";
 
   return (
     <Dialog
       open={open}
       onClose={onClose}
       fullScreen
-      slotProps={{
-        paper: {
-          sx: {
-            bgcolor: "background.default",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            position: "relative",
-          },
-        },
-      }}
+      slotProps={{ paper: { sx: { bgcolor: "background.default", py: 0, overflow: "clip" } } }}
+      sx={{ width: "100vw", height: "100vh", display: "flex" }}
     >
       <IconButton
         onClick={onClose}
@@ -44,9 +80,7 @@ export default function BigCarousel({ open, onClose, media, initialIndex }: BigC
           position: "absolute",
           top: 20,
           right: 20,
-          bgcolor: "background.paper",
-          // border: "2px solid",
-          "&:hover": { bgcolor: "grey.100" },
+          bgcolor,
           zIndex: 1,
         }}
       >
@@ -56,63 +90,82 @@ export default function BigCarousel({ open, onClose, media, initialIndex }: BigC
       {media.length > 1 && (
         <>
           <IconButton
-            onClick={() => setIndex(prev => (prev ? prev - 1 : media.length - 1))}
+            onClick={handlePrevious}
+            disabled={index === 0}
             sx={{
               position: "absolute",
               left: 20,
-              color: theme.palette.text.primary,
-              bgcolor: "background.paper",
-              // border: "2px solid",
-              "&:hover": { bgcolor: "grey.100" },
+              top: "50%",
+              transform: "translateY(-50%)",
+              color: "text.primary",
+              bgcolor,
               zIndex: 1,
             }}
           >
-            <ArrowBackIosNewIcon />
+            <PrevIcon />
           </IconButton>
 
           <IconButton
-            onClick={() => setIndex(prev => (prev + 1) % media.length)}
+            onClick={handleNext}
+            disabled={index === media.length - 1}
             sx={{
               position: "absolute",
               right: 20,
-              color: theme.palette.text.primary,
-              bgcolor: "background.paper",
-              // border: "2px solid",
-              "&:hover": { bgcolor: "grey.100" },
+              top: "50%",
+              transform: "translateY(-50%)",
+              color: "text.primary",
+              bgcolor,
               zIndex: 1,
             }}
           >
-            <ArrowForwardIosIcon />
+            <NextIcon />
           </IconButton>
         </>
       )}
 
       <Box
+        ref={scrollRef}
         sx={{
-          maxWidth: "90%",
-          maxHeight: "90%",
-          borderRadius: 2,
-          overflow: "hidden",
+          width: "100vw",
+          height: "100vh",
           display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          overflowX: "auto",
+          scrollSnapType: "x mandatory",
+          WebkitOverflowScrolling: "touch",
+          scrollbarWidth: "none", // Firefox
+          "&::-webkit-scrollbar": { display: "none" }, // Chrome, Safari
         }}
       >
-        {!media[index] ? (
-          "invalid image"
-        ) : media[index].type === "image" ? (
-          <img
-            src={media[index].url}
-            alt="carousel-media"
-            style={{ width: "100%", height: "auto", maxHeight: "90vh", objectFit: "contain" }}
-          />
-        ) : media[index].type === "video" ? (
-          <video
-            src={media[index].url}
-            controls
-            style={{ width: "100%", height: "auto", maxHeight: "90vh", objectFit: "contain" }}
-          />
-        ) : null}
+        {media.map((item, idx) => (
+          <Box
+            key={idx}
+            flex="0 0 100%"
+            sx={{
+              width: "100vw",
+              height: "100vh",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              scrollSnapAlign: "center",
+            }}
+          >
+            {item.type === "image" ? (
+              <img
+                src={item.originalUrl}
+                alt="carousel-media"
+                style={{ width: "100vw", height: "auto", maxHeight: "100vh", objectFit: "contain" }}
+              />
+            ) : item.type === "video" ? (
+              <VideoPlayer
+                src={item.originalUrl}
+                autoPlay={index === idx}
+                fullViewport={true}
+                showControls={true}
+                thumbnail={item.displayUrl}
+              />
+            ) : null}
+          </Box>
+        ))}
       </Box>
     </Dialog>
   );

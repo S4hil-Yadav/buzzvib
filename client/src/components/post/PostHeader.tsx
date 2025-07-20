@@ -16,6 +16,7 @@ import {
   BookmarkOutlined as UnsaveIcon,
   DeleteOutlineOutlined as DeleteIcon,
   ReportGmailerrorredOutlined as ReportIcon,
+  EditOutlined as EditIcon,
   // BlockOutlined as BlockIcon,
   Verified as VerifiedIcon,
 } from "@mui/icons-material";
@@ -27,6 +28,8 @@ import { useTogglePostSaveMutation } from "@/services/mutations/post.mutations";
 import type { AuthUser, Post } from "@/types";
 import { useDispatch } from "react-redux";
 import { openAlert } from "@/redux/slices/alertSlice";
+import type { AppDispatch } from "@/redux/store.ts";
+import { openEditPost } from "@/redux/slices/editPostSlice.ts";
 
 interface PostHeaderProps {
   post: Post;
@@ -35,7 +38,7 @@ interface PostHeaderProps {
 
 export default function PostHeader({ post, deletePostMutation }: PostHeaderProps) {
   const navigate = useNavigate();
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const queryClient = useQueryClient();
   const authUser = queryClient.getQueryData<AuthUser>(["authUser"]);
 
@@ -64,7 +67,19 @@ export default function PostHeader({ post, deletePostMutation }: PostHeaderProps
     togglePostSave({ post });
   }
 
-  function handleDeletePost(post: Post) {
+  function handleEdit(post: Post) {
+    handleMenuClose();
+    if (!authUser?.verified.profile) {
+      dispatch(
+        openAlert({ title: "Edit Post", message: "Only verified users are allowed to edit post", confirmButtonText: "ok" })
+      );
+      return;
+    }
+
+    dispatch(openEditPost({ _id: post._id, title: post.title ?? "", text: post.text ?? "", media: post.media }));
+  }
+
+  function handleDelete(post: Post) {
     handleMenuClose();
     dispatch(
       openAlert({
@@ -105,7 +120,7 @@ export default function PostHeader({ post, deletePostMutation }: PostHeaderProps
               ) : null
             }
           >
-            <Avatar src={post.author?.profilePicture} alt={post.author?.fullname} sx={{ width: 45, height: 45 }} />
+            <Avatar src={post.author?.profilePicture?.displayUrl} alt={post.author?.fullname} sx={{ width: 45, height: 45 }} />
           </Badge>
         </MuiLink>
         <Stack>
@@ -130,6 +145,7 @@ export default function PostHeader({ post, deletePostMutation }: PostHeaderProps
           </MuiLink>
           <Typography variant="caption" color="text.secondary">
             {dayjs(post.createdAt).fromNow()}
+            {post.editedAt && " • edited"}
           </Typography>
         </Stack>
       </Stack>
@@ -156,13 +172,21 @@ export default function PostHeader({ post, deletePostMutation }: PostHeaderProps
             )}
           </ListItemIcon>
           <Typography variant="body2" fontWeight={500}>
-            {post.savedAt ? "Unsave Post" : "Save Post"}
+            {post.savedAt ? "Unsave" : "Save"}
           </Typography>
         </MenuItem>
 
         {post.author && authUser && post.author._id === authUser._id
           ? [
-              <MenuItem key="1" onClick={() => handleDeletePost(post)} disabled={isPendingDeletePost}>
+              <MenuItem key="1" onClick={() => handleEdit(post)} disabled={post.status === "processing"}>
+                <ListItemIcon>
+                  <EditIcon fontSize="small" />
+                </ListItemIcon>
+                <Typography variant="body2" fontWeight={500}>
+                  Edit
+                </Typography>
+              </MenuItem>,
+              <MenuItem key="2" onClick={() => handleDelete(post)} disabled={isPendingDeletePost}>
                 <ListItemIcon>
                   {isPendingDeletePost ? (
                     <CircularProgress size={18} color="error" />
@@ -171,7 +195,7 @@ export default function PostHeader({ post, deletePostMutation }: PostHeaderProps
                   )}
                 </ListItemIcon>
                 <Typography variant="body2" fontWeight={500} color="error">
-                  Delete Post
+                  Delete
                 </Typography>
               </MenuItem>,
             ]

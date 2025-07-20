@@ -2,8 +2,8 @@ import jwt from "jsonwebtoken";
 import type { Request, Response, NextFunction } from "express";
 import UserModel from "@/models/user.model.js";
 import { ApiError, ErrorCode } from "@/lib/error.js";
-import { logApiError } from "@/loggers/api.logger.js";
 import mongoose from "mongoose";
+import SessionModel from "@/models/session.model.js";
 
 export async function attachUser(req: Request, _res: Response, next: NextFunction) {
   const sessionId = req.headers["x-session-id"];
@@ -21,17 +21,23 @@ export async function attachUser(req: Request, _res: Response, next: NextFunctio
     }
 
     const userId = new mongoose.Types.ObjectId(decoded.userId);
+    const [sessionExists, userExists] = await Promise.all([
+      SessionModel.exists({ _id: sessionId }),
+      UserModel.exists({ _id: userId, deletedAt: null }),
+    ]);
 
-    if (!(await UserModel.exists({ _id: userId, deletedAt: null }))) {
+    if (!sessionExists) {
+      throw new jwt.JsonWebTokenError("Invalid session id: session not found");
+    } else if (!userExists) {
       throw new jwt.JsonWebTokenError("Invalid access token: user not found");
     }
 
     req.user = { _id: userId };
-  } catch (err) {
-    if (err instanceof jwt.JsonWebTokenError) {
+  } catch (error) {
+    if (error instanceof jwt.JsonWebTokenError) {
       return next(new ApiError(401, { message: "Invalid access token", code: ErrorCode.INVALID_ACCESS_TOKEN }));
     } else {
-      logApiError(err);
+      logApiError(error);
     }
   }
 

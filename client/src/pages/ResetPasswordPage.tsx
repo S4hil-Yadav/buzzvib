@@ -45,9 +45,9 @@ function EmailForm() {
       }
 
       requestPasswordReset({ email });
-    } catch (err) {
-      if (err instanceof Error) {
-        toast.error(err.message);
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
       }
     }
   }
@@ -88,6 +88,7 @@ function EmailForm() {
                 setTouched(true);
               }}
               fullWidth
+              autoFocus
               placeholder="Enter your email"
               required
               slotProps={{
@@ -145,9 +146,9 @@ function PasswordForm({ secret }: { secret: string }) {
       }
 
       confirmPasswordReset({ secret, newPassword: password });
-    } catch (err) {
-      if (err instanceof Error) {
-        toast.error(err.message);
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
       }
     }
   }
@@ -188,6 +189,7 @@ function PasswordForm({ secret }: { secret: string }) {
                 setTouched(true);
               }}
               fullWidth
+              autoFocus
               placeholder="Enter your password"
               required
               slotProps={{

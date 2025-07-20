@@ -2,7 +2,7 @@ import { Box, Typography, List, ListItem } from "@mui/material";
 import { useGetReplyIdsQuery } from "@/services/queries/comment.queries";
 import CommentBody from "./CommentBody";
 import CommentSkeletonList from "./CommentSkeleton";
-import LoadingOrError from "../elements/LoadingOrError";
+import LoadingOrError from "@/components/elements/LoadingOrError";
 import type { Comment } from "@/types";
 
 interface ReplyListProps {

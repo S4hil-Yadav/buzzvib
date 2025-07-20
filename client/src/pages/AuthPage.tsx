@@ -8,7 +8,6 @@ import {
   IconButton,
   Stack,
   TextField,
-  Tooltip,
   Typography,
   Paper,
   InputAdornment,
@@ -75,7 +74,10 @@ export default function AuthPage() {
     const urlParams = new URLSearchParams(location.search);
     const code = urlParams.get("code");
 
-    if (code) googleAuth({ code });
+    if (code) {
+      navigate("/auth");
+      googleAuth({ code });
+    }
   }, [googleAuth, location.search, navigate]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -104,9 +106,9 @@ export default function AuthPage() {
       } else {
         login({ userFields: { email, password } });
       }
-    } catch (err) {
-      if (err instanceof Error) {
-        toast.error(err.message);
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
       }
     }
   }
@@ -123,7 +125,7 @@ export default function AuthPage() {
         alignItems: "center",
         justifyContent: "center",
         bgcolor: "background.default",
-        px: { xs: 0, sm: 5 },
+        p: { xs: 0, sm: 5 },
       }}
     >
       <Container disableGutters maxWidth="sm">
@@ -336,15 +338,30 @@ export default function AuthPage() {
 
               <Stack spacing={2}>
                 <Divider sx={{ "&::before, &::after": { borderColor: "divider" } }}>
-                  <Typography fontWeight={500}>or continue with</Typography>
+                  <Typography fontWeight={500}>or</Typography>
                 </Divider>
 
                 <Stack direction="row" justifyContent="center" spacing={1}>
-                  <Tooltip title="Google" placement="left">
-                    <IconButton onClick={() => googleLogin()}>
-                      <GoogleIcon size={35} />
-                    </IconButton>
-                  </Tooltip>
+                  <Button
+                    onClick={googleLogin}
+                    disabled={isPending || isSuccess}
+                    variant="outlined"
+                    startIcon={<GoogleIcon />}
+                    sx={{
+                      borderRadius: "999px",
+                      textTransform: "none",
+                      paddingX: 2,
+                      paddingY: 1,
+                      opacity: isPending || isSuccess ? 0.7 : 1,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      fontWeight: 400,
+                      color: "text.primary",
+                    }}
+                  >
+                    Continue with Google
+                  </Button>
                   {/* <Tooltip title={`${authType} with GitHub`} placement="right">
                     <IconButton size="large">
                       <GitHubIcon fontSize="large" sx={{ color: "text.primary" }} />
@@ -365,12 +382,14 @@ export default function AuthPage() {
                   {authType === "signup" ? "Already have an account?" : "Don't have an account?"}
                   <Button
                     disableTouchRipple
+                    disabled={isPending || isSuccess}
                     onClick={() => setAuthType(prev => (prev === "login" ? "signup" : "login"))}
                     sx={{
                       textTransform: "capitalize",
                       fontWeight: 300,
                       color: "primary.dark",
                       ":hover": { opacity: 0.5, bgcolor: "transparent" },
+                      ":disabled": { color: "primary.dark" },
                     }}
                   >
                     {authType === "signup" ? "login" : "signup"}
